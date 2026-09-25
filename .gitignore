@@ -1,0 +1,7 @@
+.venv/
+models/
+browser/node_modules/
+__pycache__/
+*.pyc
+tests/audio/
+.pytest_cache/

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Jarvis Settings
+Comment=Wake word, voice, model and orb settings for Jarvis
+Exec=sh -c '$HOME/Projects/Side/jarvis/.venv/bin/jarvis settings'
+Icon=audio-input-microphone
+Terminal=false
+Categories=Utility;

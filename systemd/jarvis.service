@@ -1,0 +1,18 @@
+[Unit]
+Description=Jarvis voice assistant (hotkey SUPER+A)
+Documentation=file://%h/Projects/Side/jarvis/README.md
+PartOf=graphical-session.target
+After=graphical-session.target pipewire.service
+
+[Service]
+Type=simple
+ExecStart=%h/Projects/Side/jarvis/.venv/bin/jarvis daemon
+Restart=on-failure
+RestartSec=3
+# hyprctl, omarchy, wtype and xdg-open live in /usr/bin; the claude and node
+# binaries are resolved to absolute mise paths by the daemon itself.
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=graphical-session.target

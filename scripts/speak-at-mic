@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Test harness: press the "hotkey", then say TEXT out of the laptop speakers
+# in a different voice so the real mic -> VAD -> whisper path gets exercised.
+#   scripts/speak-at-mic "what's the date today"        # hotkey first
+#   scripts/speak-at-mic --wake "hey jarvis. open github"  # rely on wake word
+cd "$(dirname "$0")/.."
+wake=0
+[ "$1" = "--wake" ] && { wake=1; shift; }
+out="${XDG_RUNTIME_DIR}/jarvis-test.wav"
+.venv/bin/python - "$out" "$*" <<'PY' 2>/dev/null
+import sys, wave, numpy as np
+from kokoro_onnx import Kokoro
+k = Kokoro("models/kokoro-v1.0.onnx", "models/voices-v1.0.bin")
+parts = [p.strip() for p in sys.argv[2].split(". ", 1)] if sys.argv[2].lower().startswith("hey jarvis") else [sys.argv[2]]
+audio = []
+for i, p in enumerate(parts):
+    a, sr = k.create(p, voice="af_heart")
+    audio += [a, np.zeros(int(24000 * 0.8), np.float32)] if i < len(parts) - 1 else [a]
+x = np.concatenate(audio)
+with wave.open(sys.argv[1], "wb") as w:
+    w.setnchannels(1); w.setsampwidth(2); w.setframerate(24000)
+    w.writeframes((np.clip(x, -1, 1) * 32767).astype(np.int16).tobytes())
+PY
+[ "$wake" = 0 ] && { .venv/bin/jarvis listen; sleep 0.4; }
+pw-play "$out"

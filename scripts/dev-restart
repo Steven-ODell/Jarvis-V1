@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Restart a dev copy of the daemon outside systemd, logging to dev.log.
+cd "$(dirname "$0")/.."
+systemctl --user stop jarvis.service 2>/dev/null
+for pid in $(pgrep -f '^[^ ]*python[^ ]* [^ ]*bin/jarvis daemon'); do kill "$pid"; done
+for pid in $(pgrep -f '^quickshell -p .*/jarvis/orb/shell.qml'); do kill "$pid"; done
+for _ in $(seq 30); do [ -S "$XDG_RUNTIME_DIR/jarvis.sock" ] || break; sleep 0.1; done
+rm -f "$XDG_RUNTIME_DIR/jarvis.sock"
+nohup .venv/bin/jarvis daemon "$@" > ~/.local/share/jarvis/dev.log 2>&1 &
+for _ in $(seq 50); do [ -S "$XDG_RUNTIME_DIR/jarvis.sock" ] && break; sleep 0.1; done
+cat ~/.local/share/jarvis/dev.log

@@ -1,0 +1,8 @@
+{
+  "name": "jarvis-browser",
+  "private": true,
+  "description": "Playwright MCP server Jarvis hands to Claude Code for real browser control",
+  "dependencies": {
+    "@playwright/mcp": "^0.0.82"
+  }
+}
