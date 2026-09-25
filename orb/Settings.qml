@@ -245,7 +245,7 @@ PanelWindow {
                                 const s = panel.status;
                                 if (!s.rss_mb) return "SUPER + A to talk";
                                 const total = Object.values(s.rss_mb).reduce((a, b) => a + b, 0);
-                                return (s.online ? "online" : "offline") + " · " + s.model +
+                                return (s.online ? "online" : "offline") + " · " + s.model + (s.fast ? " fast" : "") +
                                        (s.claude_running ? " (warm)" : "") + " · " + total + " MB resident";
                             }
                         }
@@ -301,6 +301,14 @@ PanelWindow {
                     }
                 }
                 SettingRow {
+                    label: "Fast mode"
+                    hint: "Opus only. About 1 s quicker with tools, roughly double the usage."
+                    Switch {
+                        checked: panel.val("brain", "fast", false)
+                        onToggled: v => panel.changed("brain.fast", v)
+                    }
+                }
+                SettingRow {
                     label: "Keep Claude warm"
                     hint: "Off: starts on the hotkey, exits after " + panel.val("brain", "idle_exit_min", 5) + " idle min."
                     Switch {
@@ -325,11 +333,11 @@ PanelWindow {
                     }
                 }
                 SettingRow {
-                    label: "Speed  " + Number(panel.val("voice", "speed", 1.1)).toFixed(2) + "×"
+                    label: "Speed  " + Number(panel.val("voice", "speed", 1.25)).toFixed(2) + "×"
                     Slider {
                         from: 0.8
-                        to: 1.5
-                        value: panel.val("voice", "speed", 1.1)
+                        to: 1.7
+                        value: panel.val("voice", "speed", 1.25)
                         onMoved: v => panel.changed("voice.speed", v)
                     }
                 }

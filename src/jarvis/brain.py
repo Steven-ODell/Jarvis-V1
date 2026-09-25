@@ -85,6 +85,7 @@ class ClaudeSession:
         self.lock = threading.Lock()
         self.last_used = time.monotonic()
         self.model = None
+        self.fast = False
         self.busy = False
         self.turns = 0
         threading.Thread(target=self._reaper, daemon=True, name="claude-reaper").start()
@@ -96,11 +97,12 @@ class ClaudeSession:
         with self.lock:
             self.last_used = time.monotonic()
             model = self.cfg.get("brain.model")
-            if self.proc and self.proc.poll() is None and model == self.model:
+            fast = bool(self.cfg.get("brain.fast"))
+            if self.proc and self.proc.poll() is None and (model, fast) == (self.model, self.fast):
                 return
             if self.proc and self.proc.poll() is None:
                 self._kill_locked()
-            self.model = model
+            self.model, self.fast = model, fast
             self.turns = 0
             args = [
                 find_claude(), "-p",
@@ -112,6 +114,8 @@ class ClaudeSession:
                 "--no-session-persistence",
                 "--append-system-prompt", SYSTEM,
             ]
+            if fast:
+                args += ["--settings", json.dumps({"fastMode": True})]
             mcp = browser_mcp_config()
             if mcp:
                 args += ["--mcp-config", mcp]
@@ -128,7 +132,7 @@ class ClaudeSession:
             self.events = queue.Queue()
             threading.Thread(target=self._reader, args=(self.proc, self.events),
                              daemon=True, name="claude-reader").start()
-            self.log(f"claude started ({model}, pid {self.proc.pid})")
+            self.log(f"claude started ({model}{' fast' if fast else ''}, pid {self.proc.pid})")
 
     def _reader(self, proc, q):
         for line in proc.stdout:

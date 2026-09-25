@@ -13,6 +13,10 @@ RestartSec=3
 # binaries are resolved to absolute mise paths by the daemon itself.
 Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin
 Environment=PYTHONUNBUFFERED=1
+# Whisper and Kokoro load and unload every conversation; with glibc's default
+# per-thread arenas the freed heap fragments and idle RSS creeps up (212 -> 349
+# MB over four cycles). Two arenas keeps it flat at ~190 MB.
+Environment=MALLOC_ARENA_MAX=2
 
 [Install]
 WantedBy=graphical-session.target

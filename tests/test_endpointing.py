@@ -22,6 +22,8 @@ class ScriptedVAD:
         pass
 
     def predict(self, x, frame_size=480):
+        if isinstance(self.next, float):
+            return self.next
         return 0.9 if self.next else 0.1
 
 
@@ -85,3 +87,17 @@ def test_wake_without_command_times_out_empty():
     samples, t = run([(True, 0.2), (False, 6.0)], preroll=True)
     assert samples is None
     assert 5.0 <= t <= 5.2
+
+
+def test_soft_tail_keeps_turn_open():
+    # Speech, then 0.6 s of a soft tail scoring 0.4 (below the start
+    # threshold, above the continue one), a 0.5 s pause, then more speech.
+    # Without hysteresis the tail counted as silence and cut the turn.
+    samples, t = run([(False, 0.3), (True, 1.0), (0.4, 0.6), (False, 0.5), (True, 0.8), (False, 2.0)])
+    assert t > 3.2
+
+
+def test_soft_noise_does_not_start_speech():
+    # 0.4 alone (fan hum, breathing) never crosses the start threshold.
+    samples, t = run([(0.4, 6.0)])
+    assert samples is None

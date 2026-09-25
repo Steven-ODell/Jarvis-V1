@@ -31,6 +31,19 @@ def log(msg):
     print(f"{time.strftime('%H:%M:%S')} {msg}", flush=True)
 
 
+def save_wav(path, samples):
+    """Keep the last thing the mic captured, for "it cut me off" debugging."""
+    import wave
+    try:
+        with wave.open(str(path), "wb") as w:
+            w.setnchannels(1)
+            w.setsampwidth(2)
+            w.setframerate(16000)
+            w.writeframes((np.clip(samples, -1, 1) * 32767).astype(np.int16).tobytes())
+    except OSError:
+        pass
+
+
 def rss_mb(pid):
     try:
         for line in Path(f"/proc/{pid}/status").read_text().splitlines():
@@ -206,14 +219,6 @@ class Daemon:
         self.interrupt()
         with self.lock:
             turn = self.turn
-        self.set_state("listening")
-        self.emit("listen", follow_up=follow_up)
-        if self.cfg.get("listen.pause_media") and not follow_up and not self.paused_media:
-            threading.Thread(target=self._start_media_pause, daemon=True).start()
-        # Load whisper/Kokoro and boot Claude while you're still talking; all
-        # three are ready by the time you stop.
-        self.models.warm()
-        threading.Thread(target=lambda: online() and self.claude.ensure(), daemon=True).start()
         if self.wake:
             self.wake.paused = True
         timeout = 4.0 if follow_up else float(self.cfg.get("listen.no_speech_timeout"))
@@ -226,7 +231,17 @@ class Daemon:
         )
         with self.lock:
             self.utt = utt
+        # Mic first: everything below competes for the CPU, and on a cold
+        # start that was enough to lose the first word.
         self.mic.add("listen", utt.feed)
+        self.set_state("listening")
+        self.emit("listen", follow_up=follow_up)
+        if self.cfg.get("listen.pause_media") and not follow_up and not self.paused_media:
+            threading.Thread(target=self._start_media_pause, daemon=True).start()
+        # Load whisper/Kokoro and boot Claude while you're still talking; all
+        # three are ready by the time you stop.
+        self.models.warm()
+        threading.Thread(target=lambda: online() and self.claude.ensure(), daemon=True).start()
 
     def _start_media_pause(self):
         paused = actions.pause_playing()
@@ -259,6 +274,7 @@ class Daemon:
             self.emit("heard", text="")
             return self._finish(turn)
         self.set_state("thinking")
+        save_wav(STATE_DIR / "last-utterance.wav", samples)
         t0 = time.monotonic()
         text = self.models.stt().transcribe(samples, self.cfg.get("listen.vocabulary"))
         log(f"stt {time.monotonic() - t0:.2f}s ({len(samples) / 16000:.1f}s audio): {text!r}")
@@ -461,6 +477,7 @@ class Daemon:
             pids["claude"] = self.claude.proc.pid
         mem = {k: rss_mb(p) for k, p in pids.items()}
         return {"state": self.state, "wake": bool(self.wake), "claude_running": self.claude.running(),
+                "fast": bool(self.cfg.get("brain.fast")),
                 "models_loaded": self.models.loaded,
                 "model": self.cfg.get("brain.model"), "rss_mb": mem, "online": online()}
 

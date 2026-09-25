@@ -153,7 +153,7 @@ class Models:
 class Utterance:
     """Collects one spoken request from the mic and decides when it's over.
 
-    Hotkey turns: wait for speech, keep 300 ms from before it started so the
+    Hotkey turns: wait for speech, keep 480 ms from before it started so the
     first syllable isn't clipped, end on trailing silence.
 
     Wake-word turns (preroll given) are different, because the wake word
@@ -188,6 +188,7 @@ class Utterance:
         self.grace_s = grace_s
         self.tail_s = tail_s
         self.command_heard = False
+        self._talking = False
         if self.wake:
             self.blocks.append(preroll)
             self.started = True
@@ -198,13 +199,17 @@ class Utterance:
                 return
             self.on_level(audio.level_of(block))
             score = self.vad.predict((block * 32767).astype(np.int16), frame_size=480)
-            speech = score > 0.5
+            # Hysteresis, as Silero recommends: 0.5 to start speech, but once
+            # talking only a drop below 0.35 counts as silence. Trailing soft
+            # syllables ("per second?") score ~0.4 and were ending turns early.
+            speech = score > (0.35 if self._talking else 0.5)
+            self._talking = speech
             elapsed = self.clock() - self.t0
             if self.wake:
                 return self._feed_wake(block, speech, elapsed)
             if not self.started:
                 self.pre.append(block)
-                self.pre = self.pre[-5:]
+                self.pre = self.pre[-8:]  # 480 ms: soft onsets ("Roughly") start below the VAD's threshold
                 if speech:
                     self.started = True
                     self.blocks.extend(self.pre)

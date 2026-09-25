@@ -27,7 +27,9 @@ answer.
    reminders, time and date, "type ...". About 30 patterns in
    `src/jarvis/fastpath.py`. A request is only handled here when the whole
    sentence matches, so "open GitHub and find my newest repo" goes to Claude.
-2. **Claude Code**, for everything else. One `claude -p` process in
+2. **Claude Code** (Opus 5.5 by default; fast mode is a settings toggle that
+   saves ~1 s on tool turns for about double the usage), for everything
+   else. One `claude -p` process in
    stream-json mode, started the moment you press the hotkey so it has booted
    by the time you stop talking. It has Bash on the real desktop, a Playwright
    browser (its own Chromium profile), WebSearch, and the claude.ai Gmail,
@@ -40,7 +42,9 @@ answer.
 
 Speech in is faster-whisper `base.en` (~0.45 s per request) with a vocabulary
 prompt so GitHub, Omarchy, PETG and friends come out spelled right. Speech out
-is Kokoro, streamed sentence by sentence while Claude is still writing.
+is Kokoro at 1.25x, streamed sentence by sentence while Claude is still
+writing. If it ever cuts you off, the audio it heard is in
+`~/.local/share/jarvis/last-utterance.wav`.
 
 ## Memory
 

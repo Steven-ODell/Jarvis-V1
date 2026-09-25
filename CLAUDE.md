@@ -48,6 +48,20 @@ covers how to work on it without breaking things.
 - Bare "Jarvis" (wake.model = "jarvis") runs the hey_jarvis model at half the
   threshold and checks the transcript for the name. It's unreliable, so the
   default is hey_jarvis. Sao said that's fine.
+- VAD uses hysteresis (0.5 to start, 0.35 to keep going). Soft trailing
+  syllables score ~0.4 and used to end turns mid-question. Every capture is
+  saved to `~/.local/share/jarvis/last-utterance.wav`; check it before
+  guessing at a cut-off report.
+- The mic opens before the model loads and Claude boot in `listen()`. On a
+  cold start the CPU contention was enough to lose the first word.
+- The service sets `MALLOC_ARENA_MAX=2`. Without it, each model
+  load/unload cycle fragments the heap and idle RSS creeps up
+  (212 -> 349 MB over four cycles; with it, flat at ~190).
+- Model: Opus 5.5 by default (Sao found Sonnet too dumb). `brain.fast` passes
+  `--settings {"fastMode": true}`. Benchmarks 2026-09-24, time to first
+  words: Sonnet 3.6/0.7 s (tool/simple), Opus 5.1/0.8, Opus fast 3.7/0.8.
+  Fast mode is roughly double the usage.
+- Voice speed 1.25 was Sao's pick from 1.1 / 1.25 / 1.4 samples.
 - Claude runs with `ENABLE_TOOL_SEARCH=false` so MCP tools skip the
   ToolSearch round-trip.
 - Sao's memory rule: nothing heavy resident while idle. Whisper and Kokoro

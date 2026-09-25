@@ -36,7 +36,12 @@ DEFAULTS = {
         "grace_ms": 1200,
     },
     "brain": {
-        "model": "sonnet",
+        # opus = Opus 5.5. Sonnet answers a touch faster on tool turns for
+        # about a sixth of the usage, but Sao found it too dumb.
+        "model": "opus",
+        # Claude Code fast mode (Opus): ~1 s quicker on tool turns, roughly
+        # double the usage.
+        "fast": False,
         # The claude process starts when you press the hotkey (it boots while
         # you talk) and exits after this many idle minutes, so nothing sits in
         # RAM between conversations. keep_warm holds it open forever instead.
@@ -56,7 +61,7 @@ DEFAULTS = {
     },
     "voice": {
         "voice": "bm_george",
-        "speed": 1.1,
+        "speed": 1.25,
         # Say "Opening GitHub." etc. for instant commands. Off = silent + orb.
         "acks": True,
     },

@@ -159,6 +159,10 @@ def match(text, search_engine="google"):
     if m:
         on = (m.group(1) or m.group(2)) in ("on", "enable")
         return Match(reply=f"Wake word {'on' if on else 'off'}.", control="set", arg=("wake.enabled", on))
+    m = re.fullmatch(r"(?:turn |switch )?(on|off|enable|disable) fast mode|fast mode (on|off)", t)
+    if m:
+        on = (m.group(1) or m.group(2)) in ("on", "enable")
+        return Match(reply=f"Fast mode {'on' if on else 'off'}.", control="set", arg=("brain.fast", on))
     m = re.fullmatch(r"(?:use|switch to|change to) (haiku|sonnet|opus)(?: model)?", t)
     if m:
         return Match(reply=f"Switching to {m.group(1).title()}.", control="set", arg=("brain.model", m.group(1)))
