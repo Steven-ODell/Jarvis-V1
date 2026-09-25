@@ -12,7 +12,7 @@ connectors.
 | SUPER+A | Start listening. It stops by itself when you stop talking. |
 | SUPER+A while listening | Stop now and answer. |
 | SUPER+A while it talks | Cut it off and listen again. |
-| "Hey Jarvis" | Same as the hotkey, if the wake word is on (off by default). |
+| "Hey Jarvis" | Same as the hotkey, if the wake word is on (off by default). Say the command in one breath or pause first; the wake word gets a 1.2 s beat before silence can end your turn, and up to 5 s to start the command. |
 | "never mind" / "stop" | Drop everything. |
 | "new conversation" | Forget the context. |
 | Jarvis Settings (launcher) | Wake word, voice, model, speed, orb position. |

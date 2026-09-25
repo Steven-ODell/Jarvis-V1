@@ -153,12 +153,22 @@ class Models:
 class Utterance:
     """Collects one spoken request from the mic and decides when it's over.
 
-    Ends on trailing silence after speech, on the no-speech timeout, or on
-    max length. Keeps 300 ms from before speech started so the first
-    syllable isn't clipped.
+    Hotkey turns: wait for speech, keep 300 ms from before it started so the
+    first syllable isn't clipped, end on trailing silence.
+
+    Wake-word turns (preroll given) are different, because the wake word
+    itself is speech and you usually pause for a beat after it:
+      - the pre-roll (the audio holding "Hey Jarvis") is kept for whisper but
+        doesn't count as the command starting;
+      - speech in the first `tail_s` after the trigger is the end of the wake
+        word, not the command;
+      - silence during the first `grace_s` after the trigger doesn't count,
+        and silence can't end the turn before the command has started;
+      - no command within no_speech_timeout ends it with nothing.
     """
 
-    def __init__(self, vad, silence_ms, no_speech_timeout, max_seconds, on_level, on_done, preroll=None):
+    def __init__(self, vad, silence_ms, no_speech_timeout, max_seconds, on_level, on_done,
+                 preroll=None, grace_s=1.2, tail_s=0.35, clock=time.monotonic):
         self.vad = vad
         self.vad.reset_states()
         self.silence_blocks = max(1, int(silence_ms / 1000 * audio.MIC_RATE / audio.MIC_BLOCK))
@@ -166,16 +176,19 @@ class Utterance:
         self.max_seconds = max_seconds
         self.on_level = on_level
         self.on_done = on_done
+        self.clock = clock
         self.blocks = []
         self.pre = []
         self.started = False
         self.quiet = 0
-        self.t0 = time.monotonic()
+        self.t0 = clock()
         self.finished = False
         self.lock = threading.Lock()
-        if preroll is not None and len(preroll):
-            # Wake-word turns: the audio that contained "Jarvis" (and maybe
-            # the start of the command) is already speech.
+        self.wake = preroll is not None and len(preroll) > 0
+        self.grace_s = grace_s
+        self.tail_s = tail_s
+        self.command_heard = False
+        if self.wake:
             self.blocks.append(preroll)
             self.started = True
 
@@ -186,26 +199,48 @@ class Utterance:
             self.on_level(audio.level_of(block))
             score = self.vad.predict((block * 32767).astype(np.int16), frame_size=480)
             speech = score > 0.5
+            elapsed = self.clock() - self.t0
+            if self.wake:
+                return self._feed_wake(block, speech, elapsed)
             if not self.started:
                 self.pre.append(block)
                 self.pre = self.pre[-5:]
                 if speech:
                     self.started = True
                     self.blocks.extend(self.pre)
-                elif time.monotonic() - self.t0 > self.no_speech_timeout:
+                elif elapsed > self.no_speech_timeout:
                     return self._finish(None)
                 return
             self.blocks.append(block)
             self.quiet = 0 if speech else self.quiet + 1
-            too_long = len(self.blocks) * audio.MIC_BLOCK / audio.MIC_RATE > self.max_seconds
-            if self.quiet >= self.silence_blocks or too_long:
+            if self.quiet >= self.silence_blocks or self._too_long():
                 self._finish(self._audio())
+
+    def _feed_wake(self, block, speech, elapsed):
+        self.blocks.append(block)
+        if speech and elapsed > self.tail_s:
+            self.command_heard = True
+        # Silence inside the grace period doesn't count toward end-of-speech,
+        # so the silence timer only starts once the beat is over.
+        self.quiet = 0 if speech or elapsed < self.grace_s else self.quiet + 1
+        if self._too_long():
+            return self._finish(self._audio())
+        if not self.command_heard:
+            if elapsed > self.no_speech_timeout:
+                self._finish(None)
+            return
+        if elapsed >= self.grace_s and self.quiet >= self.silence_blocks:
+            self._finish(self._audio())
+
+    def _too_long(self):
+        return self.clock() - self.t0 > self.max_seconds
 
     def stop_now(self):
         """Hotkey pressed again mid-sentence: take what we have."""
         with self.lock:
             if not self.finished:
-                self._finish(self._audio() if self.started else None)
+                has_speech = self.command_heard if self.wake else self.started
+                self._finish(self._audio() if has_speech else None)
 
     def _audio(self):
         return np.concatenate(self.blocks) if self.blocks else None

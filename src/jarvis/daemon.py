@@ -220,8 +220,9 @@ class Daemon:
         utt = Utterance(
             self.vad, int(self.cfg.get("listen.silence_ms")), timeout,
             float(self.cfg.get("listen.max_seconds")), self._mic_level,
-            lambda samples: self._heard(turn, samples, verify),
+            lambda samples: self._heard(turn, samples, wake=preroll is not None, verify=verify),
             preroll=preroll,
+            grace_s=float(self.cfg.get("wake.grace_ms")) / 1000,
         )
         with self.lock:
             self.utt = utt
@@ -248,7 +249,7 @@ class Daemon:
             self.wake.reset()
             self.wake.paused = False
 
-    def _heard(self, turn, samples, verify=False):
+    def _heard(self, turn, samples, wake=False, verify=False):
         with self.lock:
             if turn != self.turn:
                 return
@@ -264,21 +265,23 @@ class Daemon:
         with self.lock:
             if turn != self.turn:
                 return
-        if verify:
-            # "Jarvis" mode: the detector runs hot, so the transcript has to
-            # actually contain the name near the start.
-            m = WAKE_WORD.search(" ".join(text.split()[:5]))
-            if not m:
+        if wake:
+            # Whisper hears the pre-roll too, so the transcript starts with the
+            # wake word (and maybe chatter before it). Keep what follows it.
+            m = WAKE_WORD.search(text[:80])
+            if m:
+                text = text[m.end():].lstrip(" ,.!?")
+                if not text.strip(" ,.!?"):
+                    text = ""
+            elif verify:
+                # "Jarvis" mode runs the detector hot; no name in the
+                # transcript means it fired on something else.
                 log(f"false wake, ignoring {text!r}")
                 self.emit("heard", text="")
                 self.emit("tool", text="")
                 return self._finish(turn)
-            # Anything before the name is pre-roll chatter, not the request.
-            text = text[m.start():] if m.start() < 40 else text
-            rest = text[m.end() - m.start():].strip(" ,.!?")
-            if not rest:
-                # Said "Jarvis" and paused: keep listening for the command.
-                return self.listen(follow_up=True)
+            if not text:
+                log("wake word with no command")
         if not text:
             self.emit("heard", text="")
             return self._finish(turn)

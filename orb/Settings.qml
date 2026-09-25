@@ -279,6 +279,17 @@ PanelWindow {
                         onMoved: v => panel.changed("wake.threshold", Number((1.1 - v).toFixed(2)))
                     }
                 }
+                SettingRow {
+                    label: "Beat after wake word  " + (panel.val("wake", "grace_ms", 1200) / 1000).toFixed(1) + " s"
+                    hint: "Silence this soon after \"Hey Jarvis\" won't end your turn."
+                    Slider {
+                        from: 0.5
+                        to: 3.0
+                        step: 0.1
+                        value: panel.val("wake", "grace_ms", 1200) / 1000
+                        onMoved: v => panel.changed("wake.grace_ms", Math.round(v * 1000))
+                    }
+                }
 
                 SectionTitle { text: "BRAIN" }
                 SettingRow {

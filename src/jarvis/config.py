@@ -30,6 +30,10 @@ DEFAULTS = {
         # openWakeWord score, 0..1. Lower hears you from further away and
         # false-triggers more.
         "threshold": 0.5,
+        # After the wake word fires, silence doesn't count toward
+        # end-of-speech for this long, so you can take a beat before (or
+        # while starting) the command.
+        "grace_ms": 1200,
     },
     "brain": {
         "model": "sonnet",

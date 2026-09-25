@@ -16,8 +16,9 @@ covers how to work on it without breaking things.
   worse than the hotkey's.
 - `jarvis watch` shows the event stream. Turn timings (`first text`,
   `first audio`) and per-chunk `[tts]` timings are in the log.
-- `.venv/bin/python -m pytest -q tests`: fast-path routing and the offline
-  fallback against a fake Ollama server.
+- `.venv/bin/python -m pytest -q tests`: fast-path routing, end-of-speech
+  rules (scripted VAD + fake clock), and the offline fallback against a fake
+  Ollama server.
 - Look at the orb before calling a visual change done: `grim -o eDP-1` while
   it's up, then crop. The window is bottom-center, 680 x (size+150) logical
   px at scale 1.5.
@@ -35,6 +36,13 @@ covers how to work on it without breaking things.
 - Don't `import openwakeword` outside the wake-word path: it pulls in ~90 MB.
   The VAD is reimplemented in `speech.SileroVAD` for that reason.
 - openWakeWord 0.4 has no `inference_framework` kwarg.
+- Wake-word turns endpoint differently from hotkey turns
+  (`Utterance._feed_wake`). The pre-roll holding "Hey Jarvis" is context, not
+  the command starting. The command must begin 0.35 s or more after the
+  trigger, and silence in the first `wake.grace_ms` doesn't count. Before this
+  fix, pausing after the wake word cut the turn off (Sao reported it
+  2026-09-24). `tests/test_endpointing.py` covers it; test it by ear with
+  `GAP=1.5 scripts/speak-at-mic --wake "hey jarvis. ..."`.
 - The wake model keeps ~2 s of spectrogram history; after pausing it must be
   flushed with silence (`need_flush`) or it re-fires on the old "Jarvis".
 - Bare "Jarvis" (wake.model = "jarvis") runs the hey_jarvis model at half the
