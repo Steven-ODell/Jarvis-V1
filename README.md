@@ -92,6 +92,7 @@ src/jarvis/
   fastpath.py   instant commands
   actions.py    desktop actions shared by the fast path and fallback
   prompt.py     what Claude is told about being Jarvis
+  memory.py     conversation log (memory/log.jsonl) + what new sessions remember
 orb/
   shell.qml     Quickshell overlay: orb + captions, click-through
   Orb.qml       state -> shader uniforms, level smoothing

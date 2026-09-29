@@ -79,3 +79,14 @@ covers how to work on it without breaking things.
   and report memory with numbers from `jarvis status`.
 - `hyprctl dispatch exec` doesn't work under Lua Hyprland; use
   `hyprctl eval "hl.exec_cmd('...')"`. wtype key chords don't trigger binds.
+- Memory (`memory.py`, since 2026-09-28): every exchange goes to
+  `memory/log.jsonl` (gitignored, kept forever by Sao's rule). A new Claude
+  session gets the last `memory.recent` (10) claude/local exchanges plus
+  `memory/summary.md` appended to its system prompt; fast-path turns are
+  logged but left out. We chose this over `--resume`, which replays the whole
+  transcript (tool output included) and gets slower every day. The summary
+  is rebuilt in the background by haiku once `summarize_every` exchanges
+  scroll out of the window. That call runs with `--system-prompt`,
+  `--tools ""` and cwd `/tmp`: run from the project, it read CLAUDE.md
+  and wrote its contents into the summary as if Sao had said them.
+  "Start over" resets the live session only; memory stays.

@@ -5,3 +5,4 @@ __pycache__/
 *.pyc
 tests/audio/
 .pytest_cache/
+memory/

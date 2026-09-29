@@ -20,6 +20,7 @@ import numpy as np
 
 from . import actions, audio, fastpath
 from .brain import BrainError, ClaudeSession, LocalBrain, online
+from .memory import Memory
 from .config import ROOT, SOCKET, STATE_DIR, VOICES, WAKE_MODELS, BRAIN_MODELS, Config
 from .speech import Models, Speaker, Utterance, WakeWord, load_vad
 
@@ -137,8 +138,9 @@ class Daemon:
         self.speaker = Speaker(self.models.tts, self.player,
                                lambda: (self.cfg.get("voice.voice"), float(self.cfg.get("voice.speed"))))
         self.mic = audio.Mic()
-        self.claude = ClaudeSession(self.cfg, log)
-        self.local = LocalBrain(self.cfg, log)
+        self.memory = Memory(self.cfg, log)
+        self.claude = ClaudeSession(self.cfg, log, self.memory)
+        self.local = LocalBrain(self.cfg, log, self.memory)
         self.wake = None
         self._apply_wake()
         log(f"ready, rss {rss_mb(os.getpid())} MB (speech models load on first use)")
@@ -333,6 +335,8 @@ class Daemon:
         if m:
             log(f"fast path: {text!r}")
             self._run_fast(turn, m)
+            if m.control != "cancel":
+                self.memory.record(text, m.reply, "fast")
             log(f"fast path done in {(time.monotonic() - t0) * 1000:.0f} ms")
             return
         self._run_brain(turn, text, t0)
@@ -415,7 +419,7 @@ class Daemon:
                 time.sleep(0.05)
         threading.Thread(target=watch, daemon=True).start()
 
-        reply = ""
+        reply, via = "", "claude"
         try:
             if not online():
                 raise BrainError("offline")
@@ -425,6 +429,7 @@ class Daemon:
             if cancelled():
                 done.set()
                 return
+            via = "local"
             try:
                 reply = self.local.ask(text, on_text, on_tool, cancelled)
             except Exception as e2:
@@ -437,6 +442,8 @@ class Daemon:
             on_text(reply)
         finally:
             done.set()
+        # Interrupted turns are logged too: what he asked is still context.
+        self.memory.record(text, reply + (" [interrupted]" if cancelled() else ""), via)
         if cancelled():
             return
         self.speaker.flush()

@@ -93,6 +93,15 @@ DEFAULTS = {
         "position": "bottom",
         "size": 230,
     },
+    "memory": {
+        # Exchanges loaded into a new Claude session's system prompt. The
+        # full log in memory/log.jsonl is kept forever (Sao's rule).
+        "recent": 10,
+        # Fold this many exchanges into the rolling summary at a time, once
+        # they've scrolled out of the recent window. Runs in the background.
+        "summarize_every": 10,
+        "summary_model": "haiku",
+    },
     "search": {
         # google | kagi | duckduckgo | brave
         "engine": "google",

@@ -77,9 +77,10 @@ def browser_mcp_config():
 
 
 class ClaudeSession:
-    def __init__(self, cfg, log):
+    def __init__(self, cfg, log, memory=None):
         self.cfg = cfg
         self.log = log
+        self.memory = memory
         self.proc = None
         self.events = queue.Queue()
         self.lock = threading.Lock()
@@ -112,7 +113,7 @@ class ClaudeSession:
                 "--effort", self.cfg.get("brain.effort"),
                 "--permission-mode", "auto", "--permission-prompts", "none",
                 "--no-session-persistence",
-                "--append-system-prompt", SYSTEM,
+                "--append-system-prompt", SYSTEM + (self.memory.context() if self.memory else ""),
             ]
             if fast:
                 args += ["--settings", json.dumps({"fastMode": True})]
@@ -296,9 +297,10 @@ SAFE_CMD = re.compile(
 
 
 class LocalBrain:
-    def __init__(self, cfg, log):
+    def __init__(self, cfg, log, memory=None):
         self.cfg = cfg
         self.log = log
+        self.memory = memory
         self.history = []
 
     def _post(self, base, path, body, timeout):
@@ -342,7 +344,10 @@ class LocalBrain:
             raise BrainError("no local model server reachable")
         self.log(f"local brain: {model} @ {base}")
         on_tool("local:" + model, None)
-        msgs = [{"role": "system", "content": LOCAL_SYSTEM}] + self.history[-8:] + \
+        system = LOCAL_SYSTEM
+        if self.memory and not self.history:
+            system += self.memory.context()
+        msgs = [{"role": "system", "content": system}] + self.history[-8:] + \
                [{"role": "user", "content": text}]
         for _ in range(5):
             if cancelled():
