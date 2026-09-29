@@ -20,6 +20,18 @@ connectors.
 If Jarvis ends on a question, the mic reopens for four seconds so you can just
 answer.
 
+## Coding mode
+
+"Let's code" (or "I want to code") and Jarvis asks which project. Name any
+folder under `~/Projects` (the subfolders of CPP, Side, JS and so on) and it
+opens ghostty there. By default that's Neovim with the files you've been
+working on as buffers: uncommitted changes, then what recent commits
+touched, code before docs. Set `code.open` to `claude` in settings for
+Claude Code instead, or say "with Claude" / "in Neovim" to override it once.
+"Let's code on gitdeck" skips the question. Misheard names are matched
+loosely, and when two projects are close it asks which one ("the second
+one" works as an answer).
+
 ## How a request is handled
 
 1. **Fast path**, instant, no model: open sites and apps, search, workspaces,
@@ -92,6 +104,7 @@ src/jarvis/
   fastpath.py   instant commands
   actions.py    desktop actions shared by the fast path and fallback
   prompt.py     what Claude is told about being Jarvis
+  coding.py     "let's code": project matching and the terminal launch
   memory.py     conversation log (memory/log.jsonl) + what new sessions remember
 orb/
   shell.qml     Quickshell overlay: orb + captions, click-through

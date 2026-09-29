@@ -93,6 +93,16 @@ DEFAULTS = {
         "position": "bottom",
         "size": 230,
     },
+    "code": {
+        # What "let's code" opens in a ghostty terminal in the project:
+        # nvim (with the files he's been working on as buffers) | claude.
+        # Quitting either drops to a shell there. Sao's pick: nvim.
+        "open": "nvim",
+        # How many buffers nvim starts with.
+        "max_files": 8,
+        # Nicknames that don't sound like the folder name.
+        "aliases": {"coindeck": "Term-Crypto-Deck", "coin deck": "Term-Crypto-Deck"},
+    },
     "memory": {
         # Exchanges loaded into a new Claude session's system prompt. The
         # full log in memory/log.jsonl is kept forever (Sao's rule).

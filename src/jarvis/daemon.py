@@ -18,7 +18,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import actions, audio, fastpath
+from . import actions, audio, coding, fastpath
 from .brain import BrainError, ClaudeSession, LocalBrain, online
 from .memory import Memory
 from .config import ROOT, SOCKET, STATE_DIR, VOICES, WAKE_MODELS, BRAIN_MODELS, Config
@@ -119,6 +119,9 @@ class Daemon:
         self.hub = Hub()
         self.lock = threading.RLock()
         self.turn = 0
+        # Set after "let's code" asks which project: {"cands": [...] or None
+        # (any project), "until": monotonic deadline, "tries": n}.
+        self.code_pending = None
         self.state = "idle"
         self.utt = None
         self.paused_media = []
@@ -278,8 +281,24 @@ class Daemon:
         self.set_state("thinking")
         save_wav(STATE_DIR / "last-utterance.wav", samples)
         t0 = time.monotonic()
-        text = self.models.stt().transcribe(samples, self.cfg.get("listen.vocabulary"))
+        vocab = list(self.cfg.get("listen.vocabulary"))
+        names = [coding.say_name(n) for n, _ in coding.projects()]
+        # Whisper leans toward words in its prompt. Project names go in when
+        # he's answering "Which project?", or on a second pass when "let's
+        # code on X" came back with an X that isn't one ("GitHub" for
+        # gitdeck: GitHub is in the everyday vocabulary).
+        text = self.models.stt().transcribe(samples, vocab + names if self._code_waiting() else vocab)
         log(f"stt {time.monotonic() - t0:.2f}s ({len(samples) / 16000:.1f}s audio): {text!r}")
+        asked = coding.named_request(text)
+        aliases = self.cfg.get("code.aliases")
+        if asked and coding.resolve(asked, coding.projects(), aliases)[0] != "one":
+            again = self.models.stt().transcribe(samples, names + vocab)
+            asked = coding.named_request(again)
+            # Only if it helped: the name-heavy prompt can mangle the rest
+            # ("with Claude" came back as "if Claude").
+            if asked and coding.resolve(asked, coding.projects(), aliases)[0] == "one":
+                text = again
+            log(f"stt with project names: {again!r} ({'used' if text == again else 'kept the first'})")
         with self.lock:
             if turn != self.turn:
                 return
@@ -331,6 +350,9 @@ class Daemon:
     def handle_text(self, turn, text):
         self.emit("heard", text=text)
         t0 = time.monotonic()
+        if self._code_turn(turn, text):
+            log(f"code mode: {text!r} in {(time.monotonic() - t0) * 1000:.0f} ms")
+            return
         m = fastpath.match(text, self.cfg.get("search.engine"))
         if m:
             log(f"fast path: {text!r}")
@@ -340,6 +362,84 @@ class Daemon:
             log(f"fast path done in {(time.monotonic() - t0) * 1000:.0f} ms")
             return
         self._run_brain(turn, text, t0)
+
+    # ------------------------------------------------------------ code mode
+
+    def _code_waiting(self):
+        p = self.code_pending
+        if p and time.monotonic() > p["until"]:
+            self.code_pending = p = None
+        return p
+
+    def _code_turn(self, turn, text):
+        """"Let's code" and the answers that follow it. True if handled."""
+        t = coding.LEAD.sub("", fastpath.normalize(text))
+        aliases = self.cfg.get("code.aliases")
+        pending = self._code_waiting()
+        name = None
+        tool = None
+        m = coding.TOOL.fullmatch(t)
+        if m:
+            t, tool = m.group("rest"), "claude" if "claude" in m.group("tool") else "nvim"
+        if pending:
+            if coding.CANCEL.fullmatch(t):
+                self.code_pending = None
+                return self._code_say(turn, text, "Okay.")
+            name = t
+        else:
+            m = coding.TRIGGER.fullmatch(t)
+            if m and not m.group("name"):
+                self.code_pending = {"cands": None, "until": time.monotonic() + 30, "tries": 0, "tool": tool}
+                return self._code_say(turn, text, "Which project?")
+            if m:
+                name = m.group("name")
+            else:
+                m = coding.WORK_ON.fullmatch(t)
+                if not m or coding.resolve(m.group("name"), coding.projects(), aliases)[0] != "one":
+                    return False
+                name = m.group("name")
+
+        tool = tool or (pending or {}).get("tool")
+        if pending and pending["cands"]:
+            got = coding.pick(name, pending["cands"])
+            if got:
+                return self._code_open(turn, text, got, tool)
+        kind, got = coding.resolve(name, coding.projects(), aliases)
+        if kind == "one":
+            return self._code_open(turn, text, got[0], tool)
+        if kind == "some":
+            self.code_pending = {"cands": got, "until": time.monotonic() + 30, "tries": 0, "tool": tool}
+            return self._code_say(turn, text, coding.either(got))
+        # Nothing close. A short answer was a misheard name; a long one or a
+        # fast-path command ("volume up") is him moving on.
+        if pending and (len(t.split()) > 3 or fastpath.match(text, self.cfg.get("search.engine"))):
+            self.code_pending = None
+            return False
+        tries = (pending or {}).get("tries", 0) + 1
+        if tries > 2:
+            self.code_pending = None
+            return self._code_say(turn, text, "I couldn't find that project.")
+        self.code_pending = {"cands": None, "until": time.monotonic() + 30, "tries": tries, "tool": tool}
+        return self._code_say(turn, text, f"I don't see a project called {name}. Which one?")
+
+    def _code_open(self, turn, text, project, tool=None):
+        name, path = project
+        self.code_pending = None
+        tool = tool or self.cfg.get("code.open")
+        log(f"code mode: opening {path} in {tool}")
+        coding.open_project(path, tool, int(self.cfg.get("code.max_files")))
+        where = "with Claude Code" if tool == "claude" else "in Neovim"
+        return self._code_say(turn, text, f"Opening {coding.say_name(name)} {where}.")
+
+    def _code_say(self, turn, heard, reply):
+        """Speak a code-mode line; a question reopens the mic for the answer."""
+        self.memory.record(heard, reply, "fast")
+        self.emit("reply", text=reply, done=True)
+        if self._speak_and_wait(turn, reply) and reply.endswith("?") and self.cfg.get("listen.follow_up"):
+            self.listen(follow_up=True)
+        else:
+            self._finish(turn)
+        return True
 
     def _run_fast(self, turn, m):
         if m.control == "cancel":
@@ -368,7 +468,7 @@ class Daemon:
 
     def _speak_and_wait(self, turn, text):
         self.speaker.say(text)
-        self._wait_speech(turn)
+        return self._wait_speech(turn)
 
     def _wait_speech(self, turn):
         while True:
@@ -474,7 +574,8 @@ class Daemon:
         return {"wake_models": WAKE_MODELS, "voices": VOICES, "brain_models": BRAIN_MODELS,
                 "whisper_models": ["tiny.en", "base.en", "small.en"],
                 "search_engines": ["google", "kagi", "duckduckgo", "brave"],
-                "positions": ["bottom", "center", "top"]}
+                "positions": ["bottom", "center", "top"],
+                "code_opens": ["nvim", "claude"]}
 
     def status(self):
         pids = {"daemon": os.getpid()}

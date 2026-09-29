@@ -376,6 +376,18 @@ PanelWindow {
                     }
                 }
 
+                SectionTitle { text: "CODING" }
+                SettingRow {
+                    label: "\"Let's code\" opens"
+                    hint: "Neovim starts with recently worked-on files as buffers. Say \"with Claude\" or \"in Neovim\" to override once."
+                    Pills {
+                        model: panel.opts.code_opens || []
+                        labels: ({ "nvim": "Neovim", "claude": "Claude Code" })
+                        current: panel.val("code", "open", "nvim")
+                        onPicked: v => panel.changed("code.open", v)
+                    }
+                }
+
                 SectionTitle { text: "LOOK" }
                 SettingRow {
                     label: "Orb position"

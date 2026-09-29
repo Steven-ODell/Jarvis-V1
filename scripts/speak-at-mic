@@ -4,9 +4,11 @@
 #   scripts/speak-at-mic "what's the date today"        # hotkey first
 #   scripts/speak-at-mic --wake "hey jarvis. open github"  # rely on wake word
 #   GAP=1.5 scripts/speak-at-mic --wake "hey jarvis. ..."  # pause after the wake word
+#   scripts/speak-at-mic --no-key "gitdeck"               # answer a follow-up question
 cd "$(dirname "$0")/.."
 wake=0
 [ "$1" = "--wake" ] && { wake=1; shift; }
+[ "$1" = "--no-key" ] && { wake=1; shift; }
 out="${XDG_RUNTIME_DIR}/jarvis-test.wav"
 .venv/bin/python - "$out" "$*" <<'PY' 2>/dev/null
 import os, sys, wave, numpy as np

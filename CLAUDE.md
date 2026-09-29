@@ -90,3 +90,16 @@ covers how to work on it without breaking things.
   `--tools ""` and cwd `/tmp`: run from the project, it read CLAUDE.md
   and wrote its contents into the summary as if Sao had said them.
   "Start over" resets the live session only; memory stays.
+- Coding mode (`coding.py`, `Daemon._code_turn`) runs before the fast path.
+  After "Which project?" the answer is expected for 30 s; a long sentence
+  or a fast-path command drops it and goes the normal way. Whisper gets the
+  project names in its prompt while that question is open, and gets a
+  second pass on "let's code on X" when X doesn't match (it heard gitdeck as
+  "GitHub", which is in the everyday vocabulary). That second pass is only
+  used if it resolves, because it can mangle the rest ("with Claude" came
+  back as "if Claude"). It also hears "let's" as "it's": `coding.LEAD`.
+  Launch output goes to `~/.local/share/jarvis/code-launch.log`.
+- Testing coding mode opens real windows on Sao's screen; close them after.
+  Answer a follow-up with `scripts/speak-at-mic --no-key "..."` as soon as
+  the state is `listening` (the window is 4 s). Don't `pkill -f` a pattern
+  that also appears in your own shell command: it kills that shell.
