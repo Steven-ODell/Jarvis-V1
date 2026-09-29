@@ -27,7 +27,7 @@ answer.
    reminders, time and date, "type ...". About 30 patterns in
    `src/jarvis/fastpath.py`. A request is only handled here when the whole
    sentence matches, so "open GitHub and find my newest repo" goes to Claude.
-2. **Claude Code** (Opus 5.5 by default; fast mode is a settings toggle that
+2. **Claude Code** (Sonnet 5.5 by default; fast mode is a settings toggle that
    saves ~1 s on tool turns for about double the usage), for everything
    else. One `claude -p` process in
    stream-json mode, started the moment you press the hotkey so it has booted

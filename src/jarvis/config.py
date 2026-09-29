@@ -36,7 +36,7 @@ DEFAULTS = {
         "grace_ms": 1200,
     },
     "brain": {
-        # sonnet = Sonnet 5.5 (see brain.MODEL_IDS), opus = Opus 5.5. Sao
+        # sonnet = Sonnet 5.5, opus = Opus 5.5. Sao
         # found Sonnet 5 too dumb; Sonnet 5.5 replaced Opus as the default
         # on 2026-09-28.
         "model": "sonnet",
