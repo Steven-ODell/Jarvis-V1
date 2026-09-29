@@ -20,8 +20,16 @@ covers how to work on it without breaking things.
   rules (scripted VAD + fake clock), and the offline fallback against a fake
   Ollama server.
 - Look at the orb before calling a visual change done: `grim -o eDP-1` while
-  it's up, then crop. The window is bottom-center, 680 x (size+150) logical
-  px at scale 1.5.
+  it's up, then crop. The window is 680 x (size+190) logical px at scale
+  1.5, top or bottom center. To see a state without talking, point a second
+  `quickshell -p orb/shell.qml` at a fake socket with `JARVIS_SOCKET` that
+  sends `hello`, `state` and `level` events. Wait until the real orb is
+  hidden first, or the two overlap.
+- The orb design (2026-09-28) is a hologram: tick-marked dial, two
+  gyroscope rings, waveform loops around a point of light. It replaced the
+  plasma sphere because Sao wanted a new look, not a tweak of the old one.
+  The ring phases are integrated in Orb.qml; don't go back to
+  `time * speed` in the shader, which jumps when the speed changes.
 
 ## Gotchas
 

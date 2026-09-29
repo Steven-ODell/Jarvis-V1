@@ -1,7 +1,7 @@
 # Jarvis
 
 A voice assistant for this Omarchy laptop. Press SUPER+A and talk. A purple
-plasma orb rises from the bottom of the screen, listens, thinks, and answers in
+holographic orb rises from the bottom of the screen, listens, thinks, and answers in
 a British voice. It can drive the desktop, a real browser, and your Google
 connectors.
 
@@ -96,7 +96,7 @@ orb/
   shell.qml     Quickshell overlay: orb + captions, click-through
   Orb.qml       state -> shader uniforms, level smoothing
   Settings.qml  settings panel
-  shaders/orb.frag   the plasma sphere (compile: see CLAUDE.md)
+  shaders/orb.frag   the hologram: dial, gyro rings, waveform (compile: see CLAUDE.md)
 browser/        Playwright MCP server (npm)
 systemd/        jarvis.service (user unit)
 scripts/setup   builds everything git doesn't carry; the dotfiles call it

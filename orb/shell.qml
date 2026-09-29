@@ -166,7 +166,7 @@ ShellRoot {
         margins.top: 40
 
         implicitWidth: 680
-        implicitHeight: root.orbSize + 150
+        implicitHeight: root.orbSize + 190
 
         Item {
             anchors.fill: parent
@@ -187,8 +187,8 @@ ShellRoot {
                 id: captions
                 readonly property bool hasText: root.heard !== "" || root.reply !== "" || root.tool !== ""
                 anchors.horizontalCenter: parent.horizontalCenter
-                // Hug the sphere, not the shader quad (the glow needs the extra room).
-                y: root.position === "top" ? orb.y + orb.height * 0.76 + 10 : orb.y + orb.height * 0.24 - height - 10
+                // Sit just past the outer dial ring (radius 0.8 of the quad).
+                y: root.position === "top" ? orb.y + orb.height * 0.93 + 8 : orb.y + orb.height * 0.07 - height - 8
                 width: Math.min(620, Math.max(textCol.implicitWidth + 44, 180))
                 height: textCol.implicitHeight + 24
                 radius: 18
