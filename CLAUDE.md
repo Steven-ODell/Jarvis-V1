@@ -57,7 +57,10 @@ covers how to work on it without breaking things.
 - The service sets `MALLOC_ARENA_MAX=2`. Without it, each model
   load/unload cycle fragments the heap and idle RSS creeps up
   (212 -> 349 MB over four cycles; with it, flat at ~190).
-- Model: Opus 5.5 by default (Sao found Sonnet too dumb). `brain.fast` passes
+- Model: Sonnet 5.5 by default since 2026-09-28 (Opus 5.5 before that; Sao
+  found Sonnet 5 too dumb). `brain.model` stays an alias; `brain.MODEL_IDS`
+  pins `sonnet` to `claude-sonnet-5-5` because Claude Code 2.1.283's alias
+  still means Sonnet 5. Drop the mapping once the alias moves. `brain.fast` passes
   `--settings {"fastMode": true}`. Benchmarks 2026-09-24, time to first
   words: Sonnet 3.6/0.7 s (tool/simple), Opus 5.1/0.8, Opus fast 3.7/0.8.
   Fast mode is roughly double the usage.

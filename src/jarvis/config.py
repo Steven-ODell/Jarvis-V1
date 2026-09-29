@@ -36,9 +36,10 @@ DEFAULTS = {
         "grace_ms": 1200,
     },
     "brain": {
-        # opus = Opus 5.5. Sonnet answers a touch faster on tool turns for
-        # about a sixth of the usage, but Sao found it too dumb.
-        "model": "opus",
+        # sonnet = Sonnet 5.5 (see brain.MODEL_IDS), opus = Opus 5.5. Sao
+        # found Sonnet 5 too dumb; Sonnet 5.5 replaced Opus as the default
+        # on 2026-09-28.
+        "model": "sonnet",
         # Claude Code fast mode (Opus): ~1 s quicker on tool turns, roughly
         # double the usage.
         "fast": False,

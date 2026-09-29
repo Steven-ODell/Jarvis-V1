@@ -23,6 +23,12 @@ from . import actions
 from .config import ROOT, STATE_DIR
 from .prompt import SYSTEM
 
+# brain.model is an alias (the settings picker and "use sonnet" work in
+# aliases). Claude Code 2.1.283's "sonnet" still means Sonnet 5, so pin the
+# ID until its alias catches up. It prints an unrecognized_model warning to
+# stderr for this ID; the model works fine.
+MODEL_IDS = {"sonnet": "claude-sonnet-5-5"}
+
 
 class BrainError(Exception):
     pass
@@ -108,7 +114,7 @@ class ClaudeSession:
                 find_claude(), "-p",
                 "--input-format", "stream-json", "--output-format", "stream-json",
                 "--verbose", "--include-partial-messages",
-                "--model", model,
+                "--model", MODEL_IDS.get(model, model),
                 "--effort", self.cfg.get("brain.effort"),
                 "--permission-mode", "auto", "--permission-prompts", "none",
                 "--no-session-persistence",
