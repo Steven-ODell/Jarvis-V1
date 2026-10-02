@@ -575,6 +575,7 @@ class Daemon:
                 "whisper_models": ["tiny.en", "base.en", "small.en"],
                 "search_engines": ["google", "kagi", "duckduckgo", "brave"],
                 "positions": ["bottom", "center", "top"],
+                "orb_styles": ["hologram", "plasma"],
                 "code_opens": ["nvim", "claude"]}
 
     def status(self):

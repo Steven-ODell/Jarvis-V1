@@ -390,6 +390,14 @@ PanelWindow {
 
                 SectionTitle { text: "LOOK" }
                 SettingRow {
+                    label: "Orb style"
+                    Pills {
+                        model: panel.opts.orb_styles || []
+                        current: panel.val("orb", "style", "hologram")
+                        onPicked: v => panel.changed("orb.style", v)
+                    }
+                }
+                SettingRow {
                     label: "Orb position"
                     Pills {
                         model: panel.opts.positions || []

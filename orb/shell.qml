@@ -23,6 +23,7 @@ ShellRoot {
 
     readonly property string position: (cfg.orb && cfg.orb.position) || "bottom"
     readonly property int orbSize: (cfg.orb && cfg.orb.size) || 230
+    readonly property string orbStyle: (cfg.orb && cfg.orb.style) || "hologram"
     readonly property string font: "JetBrainsMono Nerd Font"
 
     function send(obj) {
@@ -171,24 +172,44 @@ ShellRoot {
         Item {
             anchors.fill: parent
 
-            Orb {
+            Loader {
                 id: orb
+                // How far out from the center the captions sit, as a
+                // fraction of the quad: past the dial ring, or hugging the
+                // sphere (the plasma glow needs the extra room).
+                readonly property real rim: root.orbStyle === "plasma" ? 0.26 : 0.43
                 width: root.orbSize
                 height: root.orbSize
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: root.position === "top" ? 0 : parent.height - height
-                mode: root.mode
-                target: root.level
-                appear: Math.max(0, orbWin.appear)
-                animate: orbWin.visible
+                sourceComponent: root.orbStyle === "plasma" ? plasmaOrb : hologramOrb
+            }
+
+            Component {
+                id: hologramOrb
+                Orb {
+                    mode: root.mode
+                    target: root.level
+                    appear: Math.max(0, orbWin.appear)
+                    animate: orbWin.visible
+                }
+            }
+
+            Component {
+                id: plasmaOrb
+                PlasmaOrb {
+                    mode: root.mode
+                    target: root.level
+                    appear: Math.max(0, orbWin.appear)
+                    animate: orbWin.visible
+                }
             }
 
             Rectangle {
                 id: captions
                 readonly property bool hasText: root.heard !== "" || root.reply !== "" || root.tool !== ""
                 anchors.horizontalCenter: parent.horizontalCenter
-                // Sit just past the outer dial ring (radius 0.8 of the quad).
-                y: root.position === "top" ? orb.y + orb.height * 0.93 + 8 : orb.y + orb.height * 0.07 - height - 8
+                y: root.position === "top" ? orb.y + orb.height * (0.5 + orb.rim) + 8 : orb.y + orb.height * (0.5 - orb.rim) - height - 8
                 width: Math.min(620, Math.max(textCol.implicitWidth + 44, 180))
                 height: textCol.implicitHeight + 24
                 radius: 18

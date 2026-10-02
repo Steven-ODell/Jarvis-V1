@@ -15,7 +15,7 @@ connectors.
 | "Hey Jarvis" | Same as the hotkey, if the wake word is on (off by default). Say the command in one breath or pause first; the wake word gets a 1.2 s beat before silence can end your turn, and up to 5 s to start the command. |
 | "never mind" / "stop" | Drop everything. |
 | "new conversation" | Forget the context. |
-| Jarvis Settings (launcher) | Wake word, voice, model, speed, orb position. |
+| Jarvis Settings (launcher) | Wake word, voice, model, speed, orb style and position. |
 
 If Jarvis ends on a question, the mic reopens for four seconds so you can just
 answer.

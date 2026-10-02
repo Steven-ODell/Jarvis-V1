@@ -92,6 +92,8 @@ DEFAULTS = {
         # bottom | center | top
         "position": "bottom",
         "size": 230,
+        # hologram (dial and gyroscope rings) | plasma (the original sphere)
+        "style": "hologram",
     },
     "code": {
         # What "let's code" opens in a ghostty terminal in the project:

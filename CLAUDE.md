@@ -30,10 +30,15 @@ covers how to work on it without breaking things.
   plasma sphere because Sao wanted a new look, not a tweak of the old one.
   The ring phases are integrated in Orb.qml; don't go back to
   `time * speed` in the shader, which jumps when the speed changes.
+- The old plasma sphere is still selectable (`orb.style = "plasma"`, Sao
+  wanted both, 2026-10-01): `orb/PlasmaOrb.qml` + `shaders/plasma.frag`,
+  restored as-is from before the redesign. shell.qml swaps them with a
+  Loader; `orb.rim` sets where the captions sit for each.
 
 ## Gotchas
 
-- The shader is compiled: after editing `orb/shaders/orb.frag` run
+- The shaders are compiled: after editing `orb/shaders/orb.frag` (or
+  `plasma.frag`, same flags) run
   `/usr/lib/qt6/bin/qsb --glsl "100 es,120,150" --hlsl 50 --msl 12 -o orb/shaders/orb.frag.qsb orb/shaders/orb.frag`.
 - `set` is reserved in QML; a signal named `set` breaks the whole file with
   "Expected token `:`".
