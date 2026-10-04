@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
+import "face"
 
 // Jarvis's face: the orb overlay plus the settings panel. All state comes
 // from the daemon over its unix socket; this file only draws it.
@@ -11,6 +12,7 @@ ShellRoot {
     id: root
 
     property string mode: "idle"
+    property string mood: "neutral"
     property real level: 0
     property string heard: ""
     property string reply: ""
@@ -56,6 +58,8 @@ ShellRoot {
             }
             break;
         case "listen":
+            root.mood = "neutral";
+            moodTimer.stop();
             root.heard = "";
             root.reply = "";
             root.tool = "";
@@ -63,6 +67,17 @@ ShellRoot {
             break;
         case "level":
             root.level = m.v;
+            break;
+        case "mood":
+            // A reaction to what he said has a hold time; Claude's own
+            // tags last until the next one or the end of the turn.
+            root.mood = m.mood;
+            if (m.hold) {
+                moodTimer.interval = m.hold * 1000;
+                moodTimer.restart();
+            } else {
+                moodTimer.stop();
+            }
             break;
         case "heard":
             root.heard = m.text;
@@ -119,7 +134,15 @@ ShellRoot {
 
     Timer {
         id: hideTimer
-        onTriggered: root.shown = false
+        onTriggered: {
+            root.shown = false;
+            root.mood = "neutral";
+        }
+    }
+
+    Timer {
+        id: moodTimer
+        onTriggered: root.mood = "neutral"
     }
 
     Timer {
@@ -172,23 +195,56 @@ ShellRoot {
         Item {
             anchors.fill: parent
 
-            Loader {
+            Item {
                 id: orb
                 // How far out from the center the captions sit, as a
                 // fraction of the quad: past the dial ring, or hugging the
                 // sphere (the plasma glow needs the extra room).
-                readonly property real rim: root.orbStyle === "plasma" ? 0.26 : 0.43
+                readonly property real rim: root.orbStyle === "plasma" ? 0.26 : root.orbStyle === "glyph" ? 0.36 : 0.45
+                // The 3D faces load by URL so a machine without Qt Quick 3D
+                // (pacman -S qt6-quick3d) only loses those styles; the
+                // hologram stands in if one fails to load.
+                readonly property string url: ({ visor: "face/VisorFace.qml", holo: "face/HoloFace.qml", android: "face/AndroidFace.qml" })[root.orbStyle] || ""
                 width: root.orbSize
                 height: root.orbSize
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: root.position === "top" ? 0 : parent.height - height
-                sourceComponent: root.orbStyle === "plasma" ? plasmaOrb : hologramOrb
+
+                Loader {
+                    anchors.fill: parent
+                    active: orb.url === "" || face3d.status === Loader.Error
+                    sourceComponent: root.orbStyle === "plasma" ? plasmaOrb : root.orbStyle === "glyph" ? glyphFace : hologramOrb
+                }
+
+                Loader {
+                    id: face3d
+                    anchors.fill: parent
+                    source: orb.url
+                    onLoaded: {
+                        item.mode = Qt.binding(() => root.mode);
+                        item.mood = Qt.binding(() => root.mood);
+                        item.target = Qt.binding(() => root.level);
+                        item.appear = Qt.binding(() => Math.max(0, orbWin.appear));
+                        item.animate = Qt.binding(() => orbWin.visible);
+                    }
+                }
             }
 
             Component {
                 id: hologramOrb
                 Orb {
                     mode: root.mode
+                    target: root.level
+                    appear: Math.max(0, orbWin.appear)
+                    animate: orbWin.visible
+                }
+            }
+
+            Component {
+                id: glyphFace
+                GlyphFace {
+                    mode: root.mode
+                    mood: root.mood
                     target: root.level
                     appear: Math.max(0, orbWin.appear)
                     animate: orbWin.visible

@@ -1,0 +1,160 @@
+{
+ "pivot": [
+  0.0,
+  -1.0,
+  -0.4000000059604645
+ ],
+ "parts": {
+  "skin": {
+   "keys": [
+    "jaw_open",
+    "smile_L",
+    "frown_L",
+    "wide_L",
+    "pucker_L",
+    "brow_up_L",
+    "brow_down_L",
+    "brow_worry_L",
+    "blink_L",
+    "eye_wide_L",
+    "squint_L",
+    "smile_R",
+    "frown_R",
+    "wide_R",
+    "pucker_R",
+    "brow_up_R",
+    "brow_down_R",
+    "brow_worry_R",
+    "blink_R",
+    "eye_wide_R",
+    "squint_R"
+   ],
+   "offset": [
+    0,
+    0,
+    0
+   ],
+   "verts": 468
+  },
+  "wire": {
+   "keys": [
+    "jaw_open",
+    "smile_L",
+    "frown_L",
+    "wide_L",
+    "pucker_L",
+    "brow_up_L",
+    "brow_down_L",
+    "brow_worry_L",
+    "blink_L",
+    "eye_wide_L",
+    "squint_L",
+    "smile_R",
+    "frown_R",
+    "wide_R",
+    "pucker_R",
+    "brow_up_R",
+    "brow_down_R",
+    "brow_worry_R",
+    "blink_R",
+    "eye_wide_R",
+    "squint_R"
+   ],
+   "offset": [
+    0,
+    0,
+    0
+   ],
+   "verts": 3492
+  },
+  "points": {
+   "keys": [
+    "jaw_open",
+    "smile_L",
+    "frown_L",
+    "wide_L",
+    "pucker_L",
+    "brow_up_L",
+    "brow_down_L",
+    "brow_worry_L",
+    "blink_L",
+    "eye_wide_L",
+    "squint_L",
+    "smile_R",
+    "frown_R",
+    "wide_R",
+    "pucker_R",
+    "brow_up_R",
+    "brow_down_R",
+    "brow_worry_R",
+    "blink_R",
+    "eye_wide_R",
+    "squint_R"
+   ],
+   "offset": [
+    0,
+    0,
+    0
+   ],
+   "verts": 5616
+  },
+  "lines": {
+   "keys": [
+    "jaw_open",
+    "smile_L",
+    "frown_L",
+    "wide_L",
+    "pucker_L",
+    "brow_up_L",
+    "brow_down_L",
+    "brow_worry_L",
+    "blink_L",
+    "eye_wide_L",
+    "squint_L",
+    "smile_R",
+    "frown_R",
+    "wide_R",
+    "pucker_R",
+    "brow_up_R",
+    "brow_down_R",
+    "brow_worry_R",
+    "blink_R",
+    "eye_wide_R",
+    "squint_R"
+   ],
+   "offset": [
+    0,
+    0,
+    0
+   ],
+   "verts": 552
+  },
+  "base": {
+   "keys": [],
+   "offset": [
+    0,
+    0,
+    0
+   ],
+   "verts": 576
+  },
+  "eyeL": {
+   "keys": [],
+   "offset": [
+    0.3790909945964813,
+    1.3169274926185608,
+    0.6649900078773499
+   ],
+   "verts": 1058
+  },
+  "eyeR": {
+   "keys": [],
+   "offset": [
+    -0.3790909945964813,
+    1.3169274926185608,
+    0.6649900078773499
+   ],
+   "verts": 1058
+  }
+ }
+}

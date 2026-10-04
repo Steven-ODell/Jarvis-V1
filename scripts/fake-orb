@@ -1,0 +1,54 @@
+#!/usr/bin/env python3
+"""Drive the orb without the daemon: a fake socket that plays a scripted
+turn (listening, a reaction, thinking, speaking with moods, idle).
+
+    scripts/fake-orb [style] &      # then run quickshell with JARVIS_SOCKET
+    JARVIS_SOCKET=/tmp/jarvis-fake.sock quickshell -p orb/shell.qml
+"""
+import json, math, os, socket, sys, time
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
+from jarvis.config import Config
+
+style = sys.argv[1] if len(sys.argv) > 1 else "glyph"
+path = os.environ.get("JARVIS_SOCKET", "/tmp/jarvis-fake.sock")
+cfg = Config().data
+cfg["orb"]["style"] = style
+
+SCRIPT = [  # (seconds, events)
+    (1.5, [{"ev": "state", "state": "listening"}, {"ev": "listen", "follow_up": False}]),
+    (1.5, [{"ev": "heard", "text": "no way, the build passed?"}, {"ev": "mood", "mood": "surprised", "hold": 2.5},
+           {"ev": "state", "state": "thinking"}]),
+    (2.5, []),
+    (2.0, [{"ev": "mood", "mood": "happy"}, {"ev": "state", "state": "speaking"}, {"ev": "reply", "delta": "It did, first try."}]),
+    (2.5, [{"ev": "mood", "mood": "sad"}, {"ev": "reply", "delta": " But the deploy failed."}]),
+    (2.0, [{"ev": "mood", "mood": "confused"}, {"ev": "reply", "delta": " Not sure why yet."}]),
+    (2.0, [{"ev": "state", "state": "idle"}]),
+]
+
+try:
+    os.unlink(path)
+except FileNotFoundError:
+    pass
+srv = socket.socket(socket.AF_UNIX)
+srv.bind(path)
+srv.listen(1)
+conn, _ = srv.accept()
+conn.recv(4096)
+send = lambda e: conn.sendall((json.dumps(e) + "\n").encode())
+send({"ev": "hello", "state": "idle", "config": cfg, "options": {}})
+time.sleep(0.5)
+t0 = time.monotonic()
+speaking = False
+for dur, evs in SCRIPT:
+    for e in evs:
+        send(e)
+        if "state" in e:
+            speaking = e["state"] == "speaking"
+        print(f"{time.monotonic() - t0:5.1f}s {e}", flush=True)
+    end = time.monotonic() + dur
+    while time.monotonic() < end:
+        if speaking:  # fake syllables
+            t = time.monotonic()
+            send({"ev": "level", "v": round(max(0.0, math.sin(t * 11) * 0.5 + math.sin(t * 4.3) * 0.4), 3)})
+        time.sleep(0.03)
+time.sleep(3)

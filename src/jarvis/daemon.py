@@ -18,7 +18,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import actions, audio, coding, fastpath
+from . import actions, audio, coding, fastpath, mood
 from .brain import BrainError, ClaudeSession, LocalBrain, online
 from .memory import Memory
 from .config import ROOT, SOCKET, STATE_DIR, VOICES, WAKE_MODELS, BRAIN_MODELS, Config
@@ -349,6 +349,10 @@ class Daemon:
 
     def handle_text(self, turn, text):
         self.emit("heard", text=text)
+        # React to what he said right away; Claude's own mood tags take
+        # over once its reply starts.
+        m = mood.react(text)
+        self.emit("mood", mood=m or "neutral", hold=2.5 if m else 0)
         t0 = time.monotonic()
         if self._code_turn(turn, text):
             log(f"code mode: {text!r} in {(time.monotonic() - t0) * 1000:.0f} ms")
@@ -484,9 +488,15 @@ class Daemon:
     def _run_brain(self, turn, text, t0):
         cancelled = lambda: turn != self.turn
         marks = {}
+        # Mood tags ("[sad] ...") come out of the stream before the voice
+        # or the captions see it; each one changes the face on the spot.
+        tags = mood.MoodFilter(lambda m: cancelled() or self.emit("mood", mood=m))
 
         def on_text(delta):
             if cancelled():
+                return
+            delta = tags.feed(delta)
+            if not delta:
                 return
             if "first_text" not in marks and delta.strip():
                 marks["first_text"] = time.monotonic() - t0
@@ -542,6 +552,11 @@ class Daemon:
             on_text(reply)
         finally:
             done.set()
+        rest = tags.flush()
+        if rest and not cancelled():
+            self.emit("reply", delta=rest)
+            self.speaker.feed(rest)
+        reply = mood.strip(reply)
         # Interrupted turns are logged too: what he asked is still context.
         self.memory.record(text, reply + (" [interrupted]" if cancelled() else ""), via)
         if cancelled():
@@ -575,7 +590,7 @@ class Daemon:
                 "whisper_models": ["tiny.en", "base.en", "small.en"],
                 "search_engines": ["google", "kagi", "duckduckgo", "brave"],
                 "positions": ["bottom", "center", "top"],
-                "orb_styles": ["hologram", "plasma"],
+                "orb_styles": ["hologram", "plasma", "glyph", "visor", "holo", "android"],
                 "code_opens": ["nvim", "claude"]}
 
     def status(self):

@@ -34,6 +34,22 @@ covers how to work on it without breaking things.
   wanted both, 2026-10-01): `orb/PlasmaOrb.qml` + `shaders/plasma.frag`,
   restored as-is from before the redesign. shell.qml swaps them with a
   Loader; `orb.rim` sets where the captions sit for each.
+- Faces (branch `faces`, 2026-10-03): `orb.style` can also be `glyph`,
+  `visor`, `holo` or `android`. All four share `orb/face/rig.js` (port of
+  `faces/blender/expr.py`): poses plus damped springs per control, with
+  blinks, glances, breathing and the talking mouth on top. The pose comes
+  from the daemon state plus a mood. Moods: `mood.py`. Claude starts each
+  reply with a tag (`[happy]`, `[sad]`, `[surprised]`, `[confused]`,
+  `[neutral]`), `MoodFilter` strips tags from the stream before the voice
+  and captions see them and emits `mood` events; `react()` gives an instant
+  reaction to what Sao said (event with `hold` seconds). `scripts/fake-orb
+  <style>` plays a scripted turn against a fake socket for screenshots.
+- Glyph is plain QML (Shapes + MultiEffect). The 3D faces need Qt Quick 3D
+  (`qt6-quick3d`) and load by URL, so without it those styles fall back to
+  the hologram instead of breaking the orb. Their meshes come from
+  `faces/blender/export-live.sh` (Blender export with modifiers baked into
+  the shape keys, then balsam, which needs `assimp`). The visor shows a
+  bare `GlyphFace` as its glass's emissive texture.
 
 ## Gotchas
 
@@ -108,3 +124,12 @@ covers how to work on it without breaking things.
   Answer a follow-up with `scripts/speak-at-mic --no-key "..."` as soon as
   the state is `listening` (the window is 4 s). Don't `pkill -f` a pattern
   that also appears in your own shell command: it kills that shell.
+- Quick3D faces: balsam meshes are in meters, the scenes in cm (a 100x
+  Node). Max four directional lights (`Studio.qml`). An item texture needs
+  `flipV: true`. Unshaded CustomMaterials have no world-position varying;
+  `holo.vert` passes it. Morphing is texture-based, so 21 targets is fine.
+- `grim -g` takes logical coordinates (scale 1.5 here), not pixels.
+- The finish-line mod runs `jarvis say "Done."` when another Claude
+  session finishes; that interrupts whatever Jarvis is saying. Don't
+  mistake it for a bug while testing.
+
