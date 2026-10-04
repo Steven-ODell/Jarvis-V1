@@ -45,7 +45,7 @@ covers how to work on it without breaking things.
   reaction to what Sao said (event with `hold` seconds). `scripts/fake-orb
   <style>` plays a scripted turn against a fake socket for screenshots.
 - Glyph is plain QML (Shapes + MultiEffect). The 3D faces need Qt Quick 3D
-  (`qt6-quick3d`) and load by URL, so without it those styles fall back to
+  (`qt6-quick3d`, installed 2026-10-03, in the dotfiles install.sh) and load by URL, so without it those styles fall back to
   the hologram instead of breaking the orb. Their meshes come from
   `faces/blender/export-live.sh` (Blender export with modifiers baked into
   the shape keys, then balsam, which needs `assimp`). The visor shows a
@@ -129,7 +129,13 @@ covers how to work on it without breaking things.
   `flipV: true`. Unshaded CustomMaterials have no world-position varying;
   `holo.vert` passes it. Morphing is texture-based, so 21 targets is fine.
 - `grim -g` takes logical coordinates (scale 1.5 here), not pixels.
-- The finish-line mod runs `jarvis say "Done."` when another Claude
-  session finishes; that interrupts whatever Jarvis is saying. Don't
-  mistake it for a bug while testing.
+- Sao's Claude Code mods (`~/.claude/mods`, via CLAUDE_CODE_PLUGIN_DIRS)
+  also load inside Jarvis's own `claude -p` brain. finish-line's spoken
+  "Done." once fired there after every turn and cut each reply off after
+  its first sentence (2026-10-03). It now speaks only for prompts he typed,
+  only when that session isn't on screen, and never while `jarvis status`
+  says Jarvis is busy. If replies get cut off again, look for a stray
+  `[tts] ... 'Done.'` in the log: any `jarvis say` interrupts the turn.
+- The service runs from the working tree, so whatever branch is checked
+  out is what's live after a restart (`faces` since 2026-10-03).
 
