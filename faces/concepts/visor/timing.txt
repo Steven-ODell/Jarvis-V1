@@ -1,0 +1,11 @@
+speech_start 6.65
+idle 1 66
+listening 67 120
+thinking 121 192
+speaking 193 366
+happy 367 420
+confused 421 477
+sad 478 534
+surprised 535 582
+sleepy 583 660
+idle 661 702

@@ -27,7 +27,7 @@ for c in "${concepts[@]}"; do
     args+=(-label "$pose" "$(printf "$out/frames/f%04d.png" "$f")")
   done < <(head -n 10 "$out/timing.txt" | tail -n 9)
   magick montage "${args[@]}" -tile 3x3 -geometry 400x400+6+6 -background '#111' \
-    -fill '#c29cf8' -pointsize 22 "$out/sheet.png"
+    -fill '#c29cf8' -pointsize 22 -quality 88 "$out/sheet.jpg"
   rm -rf "$out/frames" "$out/stills"
 done
 

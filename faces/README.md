@@ -11,7 +11,7 @@ surprised, sleepy, back to idle. Pick one or mix parts and say what to change.
 | `concepts/holo` | Human face as a hologram: points, wireframe, scanlines | Human expressions, clearly digital; closest to the current orb |
 | `concepts/android` | Porcelain mask on a dark head, glowing eyes, light in the mouth | Most human; the face moves like a face |
 
-Each folder has `reel.mp4` (about 23 s, with sound) and `sheet.png` (one
+Each folder has `reel.mp4` (about 23 s, with sound) and `sheet.jpg` (one
 frame per expression). `compare.mp4` plays all four side by side.
 
 `voices/` has the same line in other Kokoro voices, for a face that
