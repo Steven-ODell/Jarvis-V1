@@ -12,3 +12,10 @@ faces/concepts/*/stills/
 faces/concepts/*.log
 faces/concepts/*/*.blend
 orb/face/*/*.glb
+# Clawd is Claude Code's mascot (Anthropic's) and this repo is public, so
+# that face stays on this machine: script, renders, meshes and QML.
+faces/blender/clawd.py
+faces/concepts/clawd/
+faces/concepts/clawd.log
+orb/face/clawd/
+orb/face/ClawdFace.qml

@@ -174,8 +174,36 @@ ShellRoot {
             }
         }
 
-        screen: root.focusedScreen()
-        visible: appear > 0.002
+        // The window stays mapped. Hiding a layer-shell window destroys its
+        // surface and showing it builds a new one, which moves the content
+        // into a new QQuickWindow, and Qt Quick 3D segfaults on that move
+        // (QQuick3DSceneManager::setWindow; crashed 2026-10-03 and 10-04).
+        // So the content hides instead; the empty mask lets clicks through.
+        readonly property bool showing: appear > 0.002
+        visible: true
+        // A screen change rebuilds the window the same way, so it only
+        // happens while hidden, with the 3D face unloaded first.
+        property bool moving: false
+        Component.onCompleted: screen = root.focusedScreen()
+        function follow() {
+            if (root.focusedScreen() === screen) return;
+            moving = true;
+            moveTimer.start();
+        }
+        Timer {
+            id: moveTimer
+            interval: 60
+            onTriggered: {
+                orbWin.screen = root.focusedScreen();
+                Qt.callLater(() => orbWin.moving = false);
+            }
+        }
+        Connections {
+            target: root
+            function onShownChanged() {
+                if (root.shown) orbWin.follow();
+            }
+        }
         color: "transparent"
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: WlrLayer.Overlay
@@ -194,6 +222,7 @@ ShellRoot {
 
         Item {
             anchors.fill: parent
+            visible: orbWin.showing
 
             Item {
                 id: orb
@@ -204,7 +233,8 @@ ShellRoot {
                 // The 3D faces load by URL so a machine without Qt Quick 3D
                 // (pacman -S qt6-quick3d) only loses those styles; the
                 // hologram stands in if one fails to load.
-                readonly property string url: ({ visor: "face/VisorFace.qml", holo: "face/HoloFace.qml", android: "face/AndroidFace.qml" })[root.orbStyle] || ""
+                readonly property string url: ({ visor: "face/VisorFace.qml", holo: "face/HoloFace.qml", android: "face/AndroidFace.qml",
+                                                 clawd: "face/ClawdFace.qml" })[root.orbStyle] || ""
                 width: root.orbSize
                 height: root.orbSize
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -219,13 +249,13 @@ ShellRoot {
                 Loader {
                     id: face3d
                     anchors.fill: parent
-                    source: orb.url
+                    source: orbWin.moving ? "" : orb.url
                     onLoaded: {
                         item.mode = Qt.binding(() => root.mode);
                         item.mood = Qt.binding(() => root.mood);
                         item.target = Qt.binding(() => root.level);
                         item.appear = Qt.binding(() => Math.max(0, orbWin.appear));
-                        item.animate = Qt.binding(() => orbWin.visible);
+                        item.animate = Qt.binding(() => orbWin.showing);
                     }
                 }
             }
@@ -236,7 +266,7 @@ ShellRoot {
                     mode: root.mode
                     target: root.level
                     appear: Math.max(0, orbWin.appear)
-                    animate: orbWin.visible
+                    animate: orbWin.showing
                 }
             }
 
@@ -247,7 +277,7 @@ ShellRoot {
                     mood: root.mood
                     target: root.level
                     appear: Math.max(0, orbWin.appear)
-                    animate: orbWin.visible
+                    animate: orbWin.showing
                 }
             }
 
@@ -257,7 +287,7 @@ ShellRoot {
                     mode: root.mode
                     target: root.level
                     appear: Math.max(0, orbWin.appear)
-                    animate: orbWin.visible
+                    animate: orbWin.showing
                 }
             }
 

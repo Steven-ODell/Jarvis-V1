@@ -125,10 +125,26 @@ covers how to work on it without breaking things.
   the state is `listening` (the window is 4 s). Don't `pkill -f` a pattern
   that also appears in your own shell command: it kills that shell.
 - Quick3D faces: balsam meshes are in meters, the scenes in cm (a 100x
-  Node). Max four directional lights (`Studio.qml`). An item texture needs
-  `flipV: true`. Unshaded CustomMaterials have no world-position varying;
+  Node). Max four directional lights (`Studio.qml`). The visor's item texture
+  needs `flipV: true` (Clawd's must not have it, below). Unshaded CustomMaterials have no world-position varying;
   `holo.vert` passes it. Morphing is texture-based, so 21 targets is fine.
 - `grim -g` takes logical coordinates (scale 1.5 here), not pixels.
+- The orb window stays mapped (`visible: true`); only its content hides.
+  Unmapping a layer-shell window and mapping it again moves the content
+  into a new QQuickWindow, and Qt Quick 3D segfaults on that move
+  (`QQuick3DSceneManager::setWindow`, crashed 2026-10-03/04, reproduced
+  on the 2nd show with a 3D face). A screen change does the same, so it
+  only happens while hidden, with the 3D face unloaded (`orbWin.moving`).
+- Local-only faces: `Daemon.LOCAL_FACES` (now `clawd`, the Claude Code
+  mascot) are gitignored because the repo is public and they're
+  Anthropic's marks. Offered in settings only where their QML exists.
+  `export_live.py` takes a concept module's own `export(part)` for them.
+  Clawd's texture plate must not use `flipV` (its happy eyes came out
+  upside down with it); a decal plate wound clockwise is culled, so wind
+  it to face +Z.
+- balsam fails silently without assimp (`libassimp.so.6 not found` in
+  `ldd /usr/lib/qt6/plugins/assetimporters/libassimp.so`). It's installed
+  and in the dotfiles install.sh since 2026-10-04.
 - Sao's Claude Code mods (`~/.claude/mods`, via CLAUDE_CODE_PLUGIN_DIRS)
   also load inside Jarvis's own `claude -p` brain. finish-line's spoken
   "Done." once fired there after every turn and cut each reply off after

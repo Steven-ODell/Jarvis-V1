@@ -584,13 +584,17 @@ class Daemon:
             self.models.set_whisper(value)
         self.emit("config", config=self.cfg.data, options=self.options())
 
-    @staticmethod
-    def options():
+    # Faces kept out of git (see .gitignore); offered only where they exist.
+    LOCAL_FACES = ["clawd"]
+
+    @classmethod
+    def options(cls):
         return {"wake_models": WAKE_MODELS, "voices": VOICES, "brain_models": BRAIN_MODELS,
                 "whisper_models": ["tiny.en", "base.en", "small.en"],
                 "search_engines": ["google", "kagi", "duckduckgo", "brave"],
                 "positions": ["bottom", "center", "top"],
-                "orb_styles": ["hologram", "plasma", "glyph", "visor", "holo", "android"],
+                "orb_styles": ["hologram", "plasma", "glyph", "visor", "holo", "android"]
+                + [s for s in cls.LOCAL_FACES if (ROOT / "orb" / "face" / f"{s.title()}Face.qml").exists()],
                 "code_opens": ["nvim", "claude"]}
 
     def status(self):

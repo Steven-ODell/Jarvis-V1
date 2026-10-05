@@ -10,6 +10,7 @@ orb/face/<concept>/<concept>.glb and parts.json; balsam turns the .glb into
 the .mesh files Quick3D loads.
 """
 
+import importlib
 import json
 import math
 import os
@@ -195,7 +196,10 @@ def main():
     for name in a:
         common.reset()
         common.setup_scene(res=64, samples=1)
-        piv, parts, offsets = EXPORTERS[name]()
+        # A concept not listed here can bring its own export(part) (for
+        # faces kept out of git, like the gitignored local ones).
+        export = EXPORTERS.get(name) or (lambda: importlib.import_module(name).export(part))
+        piv, parts, offsets = export()
         out = os.path.join(OUT, name)
         os.makedirs(out, exist_ok=True)
         bpy.ops.object.select_all(action="DESELECT")
