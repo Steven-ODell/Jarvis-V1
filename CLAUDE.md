@@ -129,6 +129,21 @@ covers how to work on it without breaking things.
   needs `flipV: true` (Clawd's must not have it, below). Unshaded CustomMaterials have no world-position varying;
   `holo.vert` passes it. Morphing is texture-based, so 21 targets is fine.
 - `grim -g` takes logical coordinates (scale 1.5 here), not pixels.
+- `scripts/face-shots <Face.qml> <outdir>` renders a face off-screen
+  (nothing on Sao's screen) through every state and mood, plus a
+  sheet.png. Use it instead of popping the orb up. It needs
+  `--core-profile` with `QT_QPA_PLATFORM=offscreen` (built in): without
+  it the offscreen platform gets GL 2.1 and Quick 3D draws nothing. A
+  hidden Hyprland special workspace doesn't work either: Qt stops
+  rendering when it gets no frame callbacks.
+- Local faces `ghost` (terminal ghost, the default in his config since
+  2026-10-18) and `voxel` (voxel Clawd): meshes from
+  `faces/blender/ghost.py` / `voxel.py` via export-live.sh, eyes drawn
+  live. Ghost eyes are a texture on a plane mid-glass with an additive
+  CustomMaterial (`ghost/light.*`): plain alpha blending gave dark
+  fringes, and ExtendedSceneEnvironment glow made blocky white halos at
+  orb size, so it's off. Voxel eyes rasterise the rig's glyph eye into the
+  5 x 8 hole-bottom cubes; lid cubes sit one layer behind the front face.
 - The orb window stays mapped (`visible: true`); only its content hides.
   Unmapping a layer-shell window and mapping it again moves the content
   into a new QQuickWindow, and Qt Quick 3D segfaults on that move

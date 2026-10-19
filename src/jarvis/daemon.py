@@ -585,7 +585,7 @@ class Daemon:
         self.emit("config", config=self.cfg.data, options=self.options())
 
     # Faces kept out of git (see .gitignore); offered only where they exist.
-    LOCAL_FACES = ["clawd"]
+    LOCAL_FACES = ["ghost", "voxel", "clawd"]
 
     @classmethod
     def options(cls):

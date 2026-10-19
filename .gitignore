@@ -19,3 +19,13 @@ faces/concepts/clawd/
 faces/concepts/clawd.log
 orb/face/clawd/
 orb/face/ClawdFace.qml
+# Claude-themed concept round 2 (Anthropic marks): local only, like Clawd.
+faces/blender/claude2/
+faces/concepts/claude2/
+# Live versions of the two picked: terminal ghost and voxel Clawd.
+faces/blender/ghost.py
+faces/blender/voxel.py
+orb/face/ghost/
+orb/face/voxel/
+orb/face/GhostFace.qml
+orb/face/VoxelFace.qml

@@ -234,7 +234,8 @@ ShellRoot {
                 // (pacman -S qt6-quick3d) only loses those styles; the
                 // hologram stands in if one fails to load.
                 readonly property string url: ({ visor: "face/VisorFace.qml", holo: "face/HoloFace.qml", android: "face/AndroidFace.qml",
-                                                 clawd: "face/ClawdFace.qml" })[root.orbStyle] || ""
+                                                 clawd: "face/ClawdFace.qml", ghost: "face/GhostFace.qml",
+                                                 voxel: "face/VoxelFace.qml" })[root.orbStyle] || ""
                 width: root.orbSize
                 height: root.orbSize
                 anchors.horizontalCenter: parent.horizontalCenter

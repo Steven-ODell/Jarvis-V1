@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Snapshot a face off-screen (no window, nothing on screen):
+#   scripts/face-shots <Face.qml> <outdir> [size]
+# One PNG per state/mood, plus sheet.png. Needs the OpenGL core profile:
+# the offscreen platform hands out GL 2.1 otherwise and Quick 3D draws nothing.
+set -euo pipefail
+here=$(cd "$(dirname "$0")" && pwd)
+mkdir -p "$2"
+QT_FORCE_STDERR_LOGGING=1 QSG_RENDER_LOOP=basic QT_QUICK_BACKEND=rhi QSG_RHI_BACKEND=opengl QT_QPA_PLATFORM=offscreen \
+  nice timeout 120 /usr/lib/qt6/bin/qml --core-profile "$here/face-shots.qml" -- "$@" 2>&1 \
+  | grep -vE "^qml: shot|Particles not supported|3D textures" || true
+names=(idle listening thinking speaking happy sad surprised confused sleepy)
+args=()
+for n in "${names[@]}"; do args+=("$2/$n.png"); done
+montage "${args[@]}" -tile 9x1 -geometry 220x220+2+2 -background '#0b0910' "$2/sheet.png"
+echo "$2/sheet.png"
