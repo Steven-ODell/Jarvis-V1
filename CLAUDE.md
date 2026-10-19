@@ -111,6 +111,11 @@ covers how to work on it without breaking things.
   `--tools ""` and cwd `/tmp`: run from the project, it read CLAUDE.md
   and wrote its contents into the summary as if Sao had said them.
   "Start over" resets the live session only; memory stays.
+- Since 2026-10-18 the brain saves its transcript (it used
+  `--no-session-persistence` before) under a `--session-id` it picks, so
+  `t3-thread strays`/`import` can continue a Jarvis conversation in T3 and
+  see from the command line that it's still live. Jarvis itself still never
+  resumes; the memory scheme above is unchanged.
 - Coding mode (`coding.py`, `Daemon._code_turn`) runs before the fast path.
   After "Which project?" the answer is expected for 30 s; a long sentence
   or a fast-path command drops it and goes the normal way. Whisper gets the

@@ -4,6 +4,10 @@ Claude Code runs as one long-lived `claude -p` process speaking stream-json,
 so follow-up questions skip the ~1.5 s CLI boot and keep the conversation. It
 starts the moment you press the hotkey (booting while you talk) and exits
 after a few idle minutes so it isn't resident between conversations.
+
+Each process saves its transcript under its own --session-id, so a Jarvis
+conversation can be picked up later in T3 (`t3-thread strays` / `import`).
+The id is on the command line so t3-thread can tell a session is still live.
 """
 
 import json
@@ -16,6 +20,7 @@ import subprocess
 import threading
 import time
 import urllib.error
+import uuid
 import urllib.request
 from pathlib import Path
 
@@ -112,7 +117,7 @@ class ClaudeSession:
                 "--model", model,
                 "--effort", self.cfg.get("brain.effort"),
                 "--permission-mode", "auto", "--permission-prompts", "none",
-                "--no-session-persistence",
+                "--session-id", str(uuid.uuid4()),
                 "--append-system-prompt", SYSTEM + (self.memory.context() if self.memory else ""),
             ]
             if fast:
