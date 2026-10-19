@@ -90,10 +90,12 @@ class Player:
     """Plays queued float32 chunks at 24 kHz and reports loudness while it
     does. stop() drops everything queued, which is how barge-in works."""
 
-    def __init__(self, on_level=None):
+    def __init__(self, on_level=None, on_chunk=None):
         self.on_level = on_level
+        self.on_chunk = on_chunk  # called with (meta, seconds) as a chunk starts playing
         self.lock = threading.Lock()
         self.chunks = collections.deque()
+        self.metas = collections.deque()
         self.pos = 0
         self.stream = None
         self.last_audio = 0.0
@@ -106,31 +108,39 @@ class Player:
     def _callback(self, outdata, frames, t, status):
         out = np.zeros(frames, dtype=np.float32)
         filled = 0
+        started = []
         with self.lock:
             while filled < frames and self.chunks:
                 chunk = self.chunks[0]
+                if self.pos == 0 and self.metas[0] is not None:
+                    started.append((self.metas[0], len(chunk) / TTS_RATE))
                 take = min(frames - filled, len(chunk) - self.pos)
                 out[filled:filled + take] = chunk[self.pos:self.pos + take]
                 filled += take
                 self.pos += take
                 if self.pos >= len(chunk):
                     self.chunks.popleft()
+                    self.metas.popleft()
                     self.pos = 0
             if filled:
                 self.last_audio = time.monotonic()
             if not self.chunks:
                 self.idle.set()
         outdata[:, 0] = out
+        if self.on_chunk:
+            for meta, secs in started:
+                self.on_chunk(meta, secs)
         now = time.monotonic()
         if self.on_level and now - self._level_t > 0.03:
             self._level_t = now
             self.on_level(level_of(out[:filled]) if filled else 0.0)
 
-    def play(self, audio):
+    def play(self, audio, meta=None):
         with self.lock:
             if self.idle.is_set():
                 self.started_at = time.monotonic()
             self.chunks.append(np.asarray(audio, dtype=np.float32))
+            self.metas.append(meta)
             self.idle.clear()
             if self.stream is None:
                 self.stream = sd.OutputStream(
@@ -142,6 +152,7 @@ class Player:
     def stop(self):
         with self.lock:
             self.chunks.clear()
+            self.metas.clear()
             self.pos = 0
             self.idle.set()
 

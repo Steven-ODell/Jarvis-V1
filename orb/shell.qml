@@ -17,6 +17,15 @@ ShellRoot {
     property string heard: ""
     property string reply: ""
     property string tool: ""
+    // Word-follow captions: the daemon says which sentence is playing and
+    // for how long; the current word is estimated by character share.
+    property int cursor: 0
+    property int curStart: 0
+    property int curCount: 0
+    property real curT0: 0
+    property real curDur: 0
+    property int curWord: -1
+    readonly property var replyWords: root.reply.trim() === "" ? [] : root.reply.trim().split(/\s+/)
     property bool shown: false
     property bool settingsOpen: false
     property var cfg: ({})
@@ -33,6 +42,40 @@ ShellRoot {
             sock.write(JSON.stringify(obj) + "\n");
             sock.flush();
         }
+    }
+
+    function norm(w) {
+        return w.toLowerCase().replace(/[^a-z0-9]/g, "");
+    }
+
+    function startSentence(text, dur) {
+        const words = text.trim().split(/\s+/);
+        const rw = root.replyWords;
+        const first = norm(words[0]);
+        let at = root.cursor;
+        for (let i = root.cursor; i < Math.min(rw.length, root.cursor + 12); i++) {
+            if (first !== "" && norm(rw[i]) === first) { at = i; break; }
+        }
+        root.curStart = at;
+        root.curCount = words.length;
+        root.curT0 = Date.now();
+        root.curDur = dur * 1000;
+        root.curWord = at;
+        root.cursor = at + words.length;
+    }
+
+    function followTick() {
+        if (root.curCount === 0) return;
+        const rw = root.replyWords;
+        let total = 0;
+        for (let i = 0; i < root.curCount; i++) total += (rw[root.curStart + i] || "x").length + 1;
+        const target = Math.min(0.999, (Date.now() - root.curT0) / Math.max(1, root.curDur)) * total;
+        let acc = 0, idx = 0;
+        for (; idx < root.curCount - 1; idx++) {
+            acc += (rw[root.curStart + idx] || "x").length + 1;
+            if (acc > target) break;
+        }
+        root.curWord = root.curStart + idx;
     }
 
     function handle(m) {
@@ -58,6 +101,9 @@ ShellRoot {
             }
             break;
         case "listen":
+            root.cursor = 0;
+            root.curWord = -1;
+            root.curCount = 0;
             root.mood = "neutral";
             moodTimer.stop();
             root.heard = "";
@@ -86,6 +132,9 @@ ShellRoot {
         case "reply":
             if (m.delta !== undefined) root.reply += m.delta;
             else if (m.done && m.text) root.reply = m.text;
+            break;
+        case "say":
+            root.startSentence(m.text, m.dur);
             break;
         case "tool":
             root.tool = m.text;
@@ -297,7 +346,7 @@ ShellRoot {
                 readonly property bool hasText: root.heard !== "" || root.reply !== "" || root.tool !== ""
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: root.position === "top" ? orb.y + orb.height * (0.5 + orb.rim) + 8 : orb.y + orb.height * (0.5 - orb.rim) - height - 8
-                width: Math.min(620, Math.max(textCol.implicitWidth + 44, 180))
+                width: root.reply.trim() !== "" ? 620 : Math.min(620, Math.max(textCol.implicitWidth + 44, 180))
                 height: textCol.implicitHeight + 24
                 radius: 18
                 color: "#c80d0819"
@@ -327,21 +376,52 @@ ShellRoot {
                         font.italic: true
                     }
 
-                    Text {
-                        visible: text !== ""
-                        width: Math.min(576, implicitWidth)
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        horizontalAlignment: Text.AlignHCenter
-                        wrapMode: Text.Wrap
-                        maximumLineCount: 5
-                        elide: Text.ElideRight
-                        text: {
-                            const r = root.reply.trim();
-                            return r.length > 300 ? "…" + r.slice(-300) : r;
+                    Flickable {
+                        id: replyView
+                        visible: root.reply.trim() !== ""
+                        width: 576
+                        height: Math.min(replyText.contentHeight, 108)
+                        contentWidth: width
+                        contentHeight: replyText.contentHeight
+                        interactive: false
+                        clip: true
+                        Behavior on contentY { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+
+                        Text {
+                            id: replyText
+                            width: 576
+                            horizontalAlignment: Text.AlignHCenter
+                            wrapMode: Text.Wrap
+                            textFormat: Text.RichText
+                            font.family: root.font
+                            font.pixelSize: 15
+                            color: "#f5f0ff"
+                            readonly property bool follow: root.mode === "speaking" && root.curWord >= 0
+                            text: {
+                                const rw = root.replyWords;
+                                const esc = w => w.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                                let out = "";
+                                for (let i = 0; i < rw.length; i++) {
+                                    const w = esc(rw[i]);
+                                    if (!follow) out += w + " ";
+                                    else if (i === root.curWord) out += "<span style=\"background-color:#7c4dff; color:#ffffff\">" + w + "</span> ";
+                                    else if (i < root.curWord) out += "<span style=\"color:#f5f0ff\">" + w + "</span> ";
+                                    else out += "<span style=\"color:#8a7fb0\">" + w + "</span> ";
+                                }
+                                return out;
+                            }
+                            onTextChanged: replyView.follow()
                         }
-                        color: "#f5f0ff"
-                        font.family: root.font
-                        font.pixelSize: 15
+
+                        function follow() {
+                            if (replyText.contentHeight <= height) { contentY = 0; return; }
+                            let off = 0;
+                            const rw = root.replyWords;
+                            const upto = replyText.follow ? root.curWord : rw.length - 1;
+                            for (let i = 0; i < upto && i < rw.length; i++) off += rw[i].length + 1;
+                            const r = replyText.positionToRectangle(off);
+                            contentY = Math.max(0, Math.min(replyText.contentHeight - height, r.y - height / 2 + r.height / 2));
+                        }
                     }
 
                     Row {
@@ -373,6 +453,13 @@ ShellRoot {
                 }
             }
         }
+    }
+
+    Timer {
+        interval: 40
+        repeat: true
+        running: root.mode === "speaking"
+        onTriggered: root.followTick()
     }
 
     // ------------------------------------------------------------- settings

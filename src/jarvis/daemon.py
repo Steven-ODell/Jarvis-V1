@@ -137,7 +137,7 @@ class Daemon:
             log=log,
         )
         self.vad = load_vad()
-        self.player = audio.Player(on_level=self._speak_level)
+        self.player = audio.Player(on_level=self._speak_level, on_chunk=self._speak_chunk)
         self.speaker = Speaker(self.models.tts, self.player,
                                lambda: (self.cfg.get("voice.voice"), float(self.cfg.get("voice.speed"))))
         self.mic = audio.Mic()
@@ -161,6 +161,10 @@ class Daemon:
 
     def _mic_level(self, v):
         self.emit("level", v=round(v, 3))
+
+    def _speak_chunk(self, text, secs):
+        # Lets the orb highlight the word being spoken inside this sentence.
+        self.emit("say", text=text, dur=round(secs, 3))
 
     def _speak_level(self, v):
         if self.state == "speaking":

@@ -525,7 +525,7 @@ class Speaker:
                 with self.cv:
                     if gen == self.gen:
                         self.spoken.append(text)
-                        self.player.play(samples)
+                        self.player.play(samples, text)
             except Exception as e:
                 print(f"[tts] {e!r}", flush=True)
             finally:
