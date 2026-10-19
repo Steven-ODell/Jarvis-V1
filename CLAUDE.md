@@ -115,7 +115,10 @@ covers how to work on it without breaking things.
   `--no-session-persistence` before) under a `--session-id` it picks, so
   `t3-thread strays`/`import` can continue a Jarvis conversation in T3 and
   see from the command line that it's still live. Jarvis itself still never
-  resumes; the memory scheme above is unchanged.
+  resumes; the memory scheme above is unchanged. With `brain.keep_warm`
+  the reaper still ends a session after `idle_exit_min` quiet minutes, but
+  boots a fresh process straight away, so each stretch of talking is its
+  own session (closed sessions are what t3-thread-auto imports).
 - Coding mode (`coding.py`, `Daemon._code_turn`) runs before the fast path.
   After "Which project?" the answer is expected for 30 s; a long sentence
   or a fast-path command drops it and goes the normal way. Whisper gets the

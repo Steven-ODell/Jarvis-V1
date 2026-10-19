@@ -185,9 +185,20 @@ class ClaudeSession:
                 # Booted on the hotkey but the fast path handled the request,
                 # so there's no conversation worth keeping it around for.
                 limit = min(limit, 45)
-            if self.running() and not self.busy and not self.cfg.get("brain.keep_warm") and idle > limit:
+            if not self.running() or self.busy or idle <= limit:
+                continue
+            if not self.cfg.get("brain.keep_warm"):
                 self.log(f"claude idle {idle / 60:.0f} min, exiting")
                 self.stop()
+            elif self.turns > 0:
+                # keep_warm still ends the conversation after a quiet spell,
+                # then boots a fresh process at once so the next question is
+                # just as fast. Each stretch of talking is its own session,
+                # which t3-thread-auto imports into T3 once it's closed; the
+                # new one starts from memory like any other session.
+                self.log(f"claude idle {idle / 60:.0f} min, starting a fresh session")
+                self.stop()
+                self.ensure()
 
     # ---------------------------------------------------------------- turns
 
