@@ -389,13 +389,14 @@ PanelWindow {
                 }
 
                 SectionTitle { text: "LOOK" }
-                SettingRow {
-                    label: "Orb style"
-                    Pills {
-                        model: panel.opts.orb_styles || []
-                        current: panel.val("orb", "style", "hologram")
-                        onPicked: v => panel.changed("orb.style", v)
-                    }
+                // Too many styles for one line beside the label: they wrap
+                // on their own full-width row, like the wake words.
+                Label { text: "Orb style" }
+                Pills {
+                    width: parent.width
+                    model: panel.opts.orb_styles || []
+                    current: panel.val("orb", "style", "hologram")
+                    onPicked: v => panel.changed("orb.style", v)
                 }
                 SettingRow {
                     label: "Orb position"
