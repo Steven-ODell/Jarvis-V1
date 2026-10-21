@@ -247,6 +247,11 @@ def match(text, search_engine="google"):
         return Match(run=lambda: actions.spawn(["omarchy", "system", "lock"]))
     if re.fullmatch(r"(?:take a |grab a )?screenshot|screen ?shot", t):
         return Match(run=lambda: actions.spawn(["omarchy", "capture", "screenshot", "fullscreen", "save"]))
+    # The work desk: ~/.local/bin/workstation opens the Kore windows and puts
+    # workspaces 2-5 on the ultrawide.
+    if re.fullmatch(r"(?:(?:initiate|initialize|start|launch|open|load|set up|setup|bring up|spin up) )?"
+                    r"(?:the |my )?(?:work ?stations?|work (?:mode|setup|desk))(?: mode)?", t):
+        return Match(reply="Setting up your workstation.", run=lambda: actions.spawn(["workstation"]))
 
     # ---- reminders and timers
     m = re.fullmatch(r"(?:set a |start a )?timer (?:for )?(\w+(?: \w+)?) minutes?", t) or \

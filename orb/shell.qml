@@ -202,6 +202,19 @@ ShellRoot {
         onTriggered: root.send({ cmd: "status" })
     }
 
+    // Unplugging the dock (2026-10-20) dropped every output for a second; the
+    // orb's surface went with it and never came back, so Jarvis talked with
+    // no orb. Rebuilding the window in place risks the Quick 3D segfault,
+    // so quit instead (see orbWin): the daemon's _orb_loop starts a fresh orb on whatever
+    // screens exist now.
+    Connections {
+        target: Quickshell
+        function onScreensChanged() {
+            console.log("screens changed, restarting orb");
+            Qt.quit();
+        }
+    }
+
     function focusedScreen() {
         const name = Hyprland.focusedMonitor ? Hyprland.focusedMonitor.name : "";
         for (let i = 0; i < Quickshell.screens.length; i++)

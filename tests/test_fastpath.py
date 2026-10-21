@@ -60,6 +60,18 @@ def test_workspace_words():
     assert m("workspace 4") is not None
 
 
+@pytest.mark.parametrize("text", [
+    "Initiate workstation.",
+    "Jarvis, initiate work station",
+    "start my workstation",
+    "work mode",
+    "set up my work desk",
+])
+def test_workstation(text):
+    got = m(text)
+    assert got is not None and got.reply == "Setting up your workstation.", text
+
+
 def test_volume():
     assert m("set volume to 40 percent") is not None
     assert m("turn it up") is not None

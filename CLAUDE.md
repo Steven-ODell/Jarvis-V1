@@ -178,3 +178,11 @@ covers how to work on it without breaking things.
 - The service runs from the working tree, so whatever branch is checked
   out is what's live after a restart (`faces` since 2026-10-03).
 
+- When the set of outputs changes (dock unplug, all outputs gone for a
+  moment) the orb quits on `Quickshell.screensChanged` and `_orb_loop`
+  starts a new one. Before that (2026-10-20) the orb's layer surface
+  vanished with the outputs and never came back: voice worked, no orb.
+  Check with `hyprctl layers | rg jarvis-orb`. Test with
+  `hyprctl output create headless X` / `output remove X`.
+- The bar button (`sao.jarvis` Omarchy plugin, in Omarchy-merge) runs
+  `jarvis toggle`, right click `jarvis settings`.
