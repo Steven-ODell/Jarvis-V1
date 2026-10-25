@@ -735,6 +735,13 @@ class Daemon:
             return {"ok": True, "config": self.cfg.data, "options": self.options()}
         elif cmd == "quit":
             threading.Thread(target=self._shutdown, daemon=True).start()
+        elif cmd == "orb_restart":
+            # The orb asks for this when the outputs change. SIGKILL skips its
+            # Qt teardown, which segfaults once the 3D face's window is gone;
+            # _orb_loop starts a new one.
+            proc = self.orb_proc
+            if proc and proc.poll() is None:
+                proc.kill()
         else:
             return {"ok": False, "error": f"unknown command {cmd!r}"}
         return {"ok": True}

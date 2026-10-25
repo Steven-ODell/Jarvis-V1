@@ -179,8 +179,11 @@ covers how to work on it without breaking things.
   out is what's live after a restart (`faces` since 2026-10-03).
 
 - When the set of outputs changes (dock unplug, all outputs gone for a
-  moment) the orb quits on `Quickshell.screensChanged` and `_orb_loop`
-  starts a new one. Before that (2026-10-20) the orb's layer surface
+  moment) the orb sends `orb_restart` on `Quickshell.screensChanged`, the
+  daemon SIGKILLs it and `_orb_loop` starts a new one. Don't go back to
+  `Qt.quit()` there: tearing down a 3D face after its window is gone
+  segfaults in `QQuickItem::~QQuickItem` (crashed on suspend 2026-10-22, 23,
+  24). Before that (2026-10-20) the orb's layer surface
   vanished with the outputs and never came back: voice worked, no orb.
   Check with `hyprctl layers | rg jarvis-orb`. Test with
   `hyprctl output create headless X` / `output remove X`.
