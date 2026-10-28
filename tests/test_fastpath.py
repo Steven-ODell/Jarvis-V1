@@ -72,6 +72,18 @@ def test_workstation(text):
     assert got is not None and got.reply == "Setting up your workstation.", text
 
 
+@pytest.mark.parametrize("text", [
+    "Close workstation.",
+    "Jarvis, close down the work station",
+    "shut down my workstation",
+    "workstation off",
+    "pack up my work desk",
+])
+def test_workstation_off(text):
+    got = m(text)
+    assert got is not None and got.reply == "Closing down your workstation.", text
+
+
 def test_volume():
     assert m("set volume to 40 percent") is not None
     assert m("turn it up") is not None

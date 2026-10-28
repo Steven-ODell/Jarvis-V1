@@ -252,6 +252,12 @@ def match(text, search_engine="google"):
     if re.fullmatch(r"(?:(?:initiate|initialize|start|launch|open|load|set up|setup|bring up|spin up) )?"
                     r"(?:the |my )?(?:work ?stations?|work (?:mode|setup|desk))(?: mode)?", t):
         return Match(reply="Setting up your workstation.", run=lambda: actions.spawn(["workstation"]))
+    # `workstation off`: closes the Kore windows, leaves T3 on 1 and a terminal
+    # on 2, everything back on the laptop.
+    if re.fullmatch(r"(?:close|close down|shut down|shutdown|end|stop|exit|pack up|tear down|wrap up|"
+                    r"put away|take down) (?:the |my )?(?:work ?stations?|work (?:mode|setup|desk))(?: mode)?|"
+                    r"(?:the |my )?work ?stations? (?:off|down)", t):
+        return Match(reply="Closing down your workstation.", run=lambda: actions.spawn(["workstation", "off"]))
 
     # ---- reminders and timers
     m = re.fullmatch(r"(?:set a |start a )?timer (?:for )?(\w+(?: \w+)?) minutes?", t) or \
