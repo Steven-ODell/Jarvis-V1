@@ -352,8 +352,17 @@ PanelWindow {
 
                 SectionTitle { text: "LISTENING" }
                 SettingRow {
-                    label: "Speech model"
-                    hint: "base.en is ~0.4 s, small.en ~1.2 s and a bit sharper."
+                    label: "Speech engine"
+                    hint: "Parakeet is ~0.4 s; misheard names go in ~/.config/voxtype/fixes.txt. Whisper uses the model below."
+                    Pills {
+                        model: panel.opts.stt_engines || []
+                        current: panel.val("listen", "stt_engine", "parakeet")
+                        onPicked: v => panel.changed("listen.stt_engine", v)
+                    }
+                }
+                SettingRow {
+                    label: "Whisper model"
+                    hint: "base.en is ~0.9 s, small.en slower and a bit sharper."
                     Pills {
                         model: panel.opts.whisper_models || []
                         current: panel.val("listen", "whisper_model", "base.en")

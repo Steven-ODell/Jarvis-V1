@@ -131,6 +131,7 @@ class Daemon:
         self._level_t = 0.0
 
         self.models = Models(
+            self.cfg.get("listen.stt_engine"),
             self.cfg.get("listen.whisper_model"),
             keep_s=lambda: float(self.cfg.get("listen.models_keep_s")),
             is_idle=lambda: self.state == "idle",
@@ -295,7 +296,9 @@ class Daemon:
         log(f"stt {time.monotonic() - t0:.2f}s ({len(samples) / 16000:.1f}s audio): {text!r}")
         asked = coding.named_request(text)
         aliases = self.cfg.get("code.aliases")
-        if asked and coding.resolve(asked, coding.projects(), aliases)[0] != "one":
+        # The second pass only helps whisper; Parakeet ignores the prompt.
+        if (asked and self.models.engine != "parakeet"
+                and coding.resolve(asked, coding.projects(), aliases)[0] != "one"):
             again = self.models.stt().transcribe(samples, names + vocab)
             asked = coding.named_request(again)
             # Only if it helped: the name-heavy prompt can mangle the rest
@@ -584,8 +587,8 @@ class Daemon:
         log(f"set {key} = {self.cfg.get(key)!r}")
         if key.startswith("wake."):
             self._apply_wake()
-        if key == "listen.whisper_model":
-            self.models.set_whisper(value)
+        if key in ("listen.stt_engine", "listen.whisper_model"):
+            self.models.set_stt(self.cfg.get("listen.stt_engine"), self.cfg.get("listen.whisper_model"))
         self.emit("config", config=self.cfg.data, options=self.options())
 
     # Faces kept out of git (see .gitignore); offered only where they exist.
@@ -594,6 +597,7 @@ class Daemon:
     @classmethod
     def options(cls):
         return {"wake_models": WAKE_MODELS, "voices": VOICES, "brain_models": BRAIN_MODELS,
+                "stt_engines": ["parakeet", "whisper"],
                 "whisper_models": ["tiny.en", "base.en", "small.en"],
                 "search_engines": ["google", "kagi", "duckduckgo", "brave"],
                 "positions": ["bottom", "center", "top"],

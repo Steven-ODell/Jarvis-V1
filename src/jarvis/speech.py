@@ -41,10 +41,60 @@ class STT:
         return text
 
 
+class ParakeetSTT:
+    """NVIDIA Parakeet TDT 0.6B v3 (int8) through onnx-asr. ~0.36 s a
+    command where whisper base.en takes ~0.6 s.
+
+    It takes no prompt, so the vocabulary list does nothing here. Misheard
+    names are fixed afterwards by `dictate-fix --words`, which reads the
+    same ~/.config/voxtype/fixes.txt that SUPER + D dictation uses.
+    """
+
+    # voxtype downloads this model for dictation; share it instead of a
+    # second 640 MB copy.
+    VOXTYPE_DIR = Path.home() / ".local/share/voxtype/models/parakeet-tdt-0.6b-v3-int8"
+    model_name = "parakeet"
+
+    def __init__(self):
+        import onnx_asr
+        import onnxruntime as ort
+        path = str(self.VOXTYPE_DIR) if self.VOXTYPE_DIR.is_dir() else None
+        # 4 threads measured fastest on this CPU (0.36 s median; the default
+        # 0.50 s, 8 threads 0.53 s).
+        so = ort.SessionOptions()
+        so.intra_op_num_threads = 4
+        self.model = onnx_asr.load_model("nemo-parakeet-tdt-0.6b-v3", path, quantization="int8",
+                                         sess_options=so, providers=["CPUExecutionProvider"])
+        self.model.recognize(np.zeros(16000, dtype=np.float32))  # graph warm-up
+
+    def transcribe(self, samples, vocabulary=()):
+        text = self.model.recognize(np.asarray(samples, dtype=np.float32)).strip()
+        return fix_words(text)
+
+
+def fix_words(text):
+    """Run the shared misheard-word list over a transcript. Missing tool or
+    a failure just returns the text as heard."""
+    import subprocess
+    if not text:
+        return text
+    try:
+        r = subprocess.run(["dictate-fix", "--words"], input=text, capture_output=True,
+                           text=True, timeout=2)
+        return r.stdout.strip() or text
+    except (OSError, subprocess.SubprocessError):
+        return text
+
+
+def make_stt(engine, whisper_name):
+    return ParakeetSTT() if engine == "parakeet" else STT(whisper_name)
+
+
 # ------------------------------------------------------------- model pool ---
 
 class Models:
-    """Whisper + Kokoro, loaded when a turn starts and dropped when idle.
+    """Speech-to-text (Parakeet or whisper) + Kokoro, loaded when a turn
+    starts and dropped when idle.
 
     Together they're ~800 MB. Loading takes ~0.5 s, which happens while
     you're still talking (the hotkey kicks it off), so keeping them resident
@@ -52,7 +102,8 @@ class Models:
     freed and malloc_trim hands the pages back to the kernel.
     """
 
-    def __init__(self, whisper_name, keep_s, is_idle, log):
+    def __init__(self, engine, whisper_name, keep_s, is_idle, log):
+        self.engine = engine
         self.whisper_name = whisper_name
         self.keep_s = keep_s
         self.is_idle = is_idle
@@ -80,11 +131,11 @@ class Models:
     def _load_stt(self):
         t0 = time.monotonic()
         try:
-            m = STT(self.whisper_name)
+            m = make_stt(self.engine, self.whisper_name)
             with self.lock:
                 self._stt = m
             self.stt_ready.set()
-            self.log(f"whisper {self.whisper_name} loaded in {time.monotonic() - t0:.2f}s")
+            self.log(f"stt {m.model_name} loaded in {time.monotonic() - t0:.2f}s")
         finally:
             with self.lock:
                 self.loading.discard("stt")
@@ -114,9 +165,10 @@ class Models:
         self.last_used = time.monotonic()
         return self._tts
 
-    def set_whisper(self, name):
+    def set_stt(self, engine, whisper_name):
         with self.lock:
-            self.whisper_name = name
+            self.engine = engine
+            self.whisper_name = whisper_name
             self._stt = None
             self.stt_ready.clear()
 
@@ -138,7 +190,8 @@ class Models:
 
     @property
     def loaded(self):
-        return [n for n, m in (("whisper", self._stt), ("kokoro", self._tts)) if m is not None]
+        return [n for n, m in ((self.engine if self.engine == "parakeet" else "whisper", self._stt),
+                               ("kokoro", self._tts)) if m is not None]
 
     def _reaper(self):
         while True:

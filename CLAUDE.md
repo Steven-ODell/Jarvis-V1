@@ -60,6 +60,14 @@ covers how to work on it without breaking things.
   "Expected token `:`".
 - Kokoro fp32 is 4x faster than the int8 model on this CPU. Don't "optimize"
   to int8.
+- Speech-to-text is Parakeet TDT 0.6B v3 int8 by default since 2026-10-27
+  (`listen.stt_engine`, `speech.ParakeetSTT`, onnx-asr), loaded from
+  voxtype's model dir so dictation and Jarvis share one 640 MB copy. It
+  takes no prompt, so `listen.vocabulary` and the coding-mode second pass
+  only apply to whisper. Misheard names are fixed by `dictate-fix --words`
+  (Omarchy-merge/bin) from `~/.config/voxtype/fixes.txt`, the same list
+  SUPER + D dictation uses; Sao adds to it by asking. 4 ORT threads
+  measured fastest (0.36 s median vs whisper base.en 0.59 s).
 - Load whisper with `local_files_only=True` first; otherwise huggingface_hub
   checks for updates on every load (0.3 s became 9 s).
 - Don't `import openwakeword` outside the wake-word path: it pulls in ~90 MB.

@@ -67,8 +67,11 @@ DEFAULTS = {
         "acks": True,
     },
     "listen": {
+        # parakeet (fast; misheard names fixed by ~/.config/voxtype/fixes.txt)
+        # | whisper (slower, but takes the vocabulary list below as a prompt).
+        "stt_engine": "parakeet",
         "whisper_model": "base.en",
-        # Whisper + Kokoro (~800 MB) load when you press the hotkey and are
+        # Speech-to-text + Kokoro load when you press the hotkey and are
         # freed after this many idle seconds.
         "models_keep_s": 120,
         "silence_ms": 800,
@@ -79,6 +82,7 @@ DEFAULTS = {
         # Pause whatever MPRIS player is playing while Jarvis listens/talks.
         "pause_media": True,
         # Biases whisper toward these spellings. Add names it gets wrong.
+        # Parakeet ignores this; its fixes go in ~/.config/voxtype/fixes.txt.
         "vocabulary": [
             "Jarvis", "GitHub", "Omarchy", "Hyprland", "Zen", "Chromium", "neovim", "lazygit",
             "ghostty", "YouTube", "Reddit", "Hacker News", "Kagi", "ChatGPT", "Claude",
